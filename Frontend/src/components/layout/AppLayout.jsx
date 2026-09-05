@@ -4,7 +4,7 @@ import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 
 export function AppLayout() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false); 
 
   return (
     <div className="min-h-screen bg-slate-50 flex">

@@ -138,7 +138,7 @@ export function Sidebar({ isOpen, onClose }) {
             <div key={idx}>
               <div className="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                 {section.title}
-              </div>
+              </div> 
               <nav className="space-y-0.5">
                 {section.items.map((item) => {
                   const Icon = item.icon;

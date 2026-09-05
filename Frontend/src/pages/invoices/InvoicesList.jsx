@@ -34,10 +34,15 @@ export function InvoicesList() {
       (activeTab === 'UNPAID' && (inv.status === 'Unpaid' || inv.status === 'Draft')) ||
       (activeTab === 'OVERDUE' && inv.status === 'Overdue');
 
+    const idStr = (inv.id || '').toLowerCase();
+    const custStr = (inv.customer || inv.customerName || '').toLowerCase();
+    const quoteStr = (inv.quoteId || '').toLowerCase();
+    const q = (searchQuery || '').toLowerCase();
+
     const matchesSearch =
-      inv.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      inv.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      inv.quoteId.toLowerCase().includes(searchQuery.toLowerCase());
+      idStr.includes(q) ||
+      custStr.includes(q) ||
+      quoteStr.includes(q);
 
     return matchesTab && matchesSearch;
   });

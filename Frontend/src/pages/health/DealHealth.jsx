@@ -28,68 +28,41 @@ export function DealHealth() {
   const { quotations, calculateQuoteFinancials } = useData();
   const { addToast } = useToast();
 
-  // Stalled Deals Data (Requirement 17)
+  // Stalled Deals Data (Single Unified Deal)
   const [stalledDeals, setStalledDeals] = useState([
     {
-      id: 'QT-2026-882',
-      customer: 'Beta Industries',
-      amount: 1445000,
+      id: 'QT-2026-001',
+      customer: 'Acme Corp',
+      amount: 591035,
       lastActivity: '2026-09-02',
       daysStalled: 3,
       owner: 'Amit Sharma'
-    },
-    {
-      id: 'QT-2026-860',
-      customer: 'Nova Systems',
-      amount: 185000,
-      lastActivity: '2026-08-26',
-      daysStalled: 8,
-      owner: 'Amit Sharma'
     }
   ]);
 
-  // Discount Anomaly Alerts Data (Requirement 17)
+  // Discount Anomaly Alerts Data (Single Unified Deal)
   const [discountAnomalies, setDiscountAnomalies] = useState([
     {
       id: 'DA-1',
-      quoteId: 'QT-2026-882',
+      quoteId: 'QT-2026-001',
       rep: 'Amit Sharma',
-      customer: 'Beta Industries',
-      discount: 18,
-      historicalAvg: 10,
-      difference: '+8% Breach',
-      risk: 'High'
-    },
-    {
-      id: 'DA-2',
-      quoteId: 'QT-2026-860',
-      rep: 'Amit Sharma',
-      customer: 'Nova Systems',
-      discount: 20,
-      historicalAvg: 12,
-      difference: '+8% Breach',
-      risk: 'High'
+      customer: 'Acme Corp',
+      discount: 12,
+      historicalAvg: 8,
+      difference: '+4% Breach',
+      risk: 'Medium'
     }
   ]);
 
-  // Delivery Promise Slippages Data (Requirement 17)
+  // Delivery Promise Slippages Data (Single Unified Deal)
   const [deliverySlippages, setDeliverySlippages] = useState([
     {
       id: 'DS-1',
-      orderId: 'ORD-FUL-901',
+      orderId: 'FO-9001',
       customer: 'Acme Corp',
-      expectedDate: '2026-09-08',
-      currentEstimate: '2026-09-12',
-      delay: '+4 Days Delay',
-      risk: 'Medium'
-    },
-    {
-      id: 'DS-2',
-      orderId: 'ORD-FUL-845',
-      customer: 'Vertex Technologies',
-      expectedDate: '2026-09-05',
-      currentEstimate: '2026-09-06',
-      delay: '+1 Day Delay',
+      expectedDate: '2026-09-15',
+      currentEstimate: '2026-09-15',
+      delay: 'On Track (Multi-Depot Split)',
       risk: 'Low'
     }
   ]);

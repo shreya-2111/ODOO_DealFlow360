@@ -5,6 +5,7 @@ import {
   INITIAL_WAREHOUSES,
   INITIAL_FULFILLMENT_SPLITS,
   INITIAL_SUBSCRIPTIONS_BILLING,
+  INITIAL_INVOICES,
   DEAL_HEALTH_DATA,
   GOVERNANCE_RULES,
   UPSELL_SUGGESTIONS
@@ -18,6 +19,7 @@ export function DataProvider({ children }) {
   const [warehouses, setWarehouses] = useState(INITIAL_WAREHOUSES);
   const [fulfillmentSplits, setFulfillmentSplits] = useState(INITIAL_FULFILLMENT_SPLITS);
   const [subscriptions, setSubscriptions] = useState(INITIAL_SUBSCRIPTIONS_BILLING);
+  const [invoices, setInvoices] = useState(INITIAL_INVOICES);
   const [dealHealth, setDealHealth] = useState(DEAL_HEALTH_DATA);
   const [governanceRules, setGovernanceRules] = useState(GOVERNANCE_RULES);
   const [upsellSuggestions, setUpsellSuggestions] = useState(UPSELL_SUGGESTIONS);
@@ -389,6 +391,12 @@ export function DataProvider({ children }) {
     );
   };
 
+  const updateInvoiceReconciliation = (invoiceId, stage) => {
+    setInvoices((prev) =>
+      prev.map((i) => (i.id === invoiceId ? { ...i, reconciliationStage: stage, status: stage === 'Paid & Reconciled' ? 'Paid' : i.status } : i))
+    );
+  };
+
   // Admin CRUD
   const adminAddProduct = (newProduct) => {
     setProducts((prev) => [newProduct, ...prev]);
@@ -411,6 +419,7 @@ export function DataProvider({ children }) {
         fulfillmentSplits,
         fulfillmentOrders: fulfillmentSplits,
         subscriptions,
+        invoices,
         dealHealth,
         governanceRules,
         upsellSuggestions,
@@ -429,11 +438,13 @@ export function DataProvider({ children }) {
         consolidateBackorder,
         modifySubscriptionQuantity,
         cancelSubscription,
+        updateInvoiceReconciliation,
         adminAddProduct,
         adminUpdateProduct,
         adminSaveGovernance,
         setQuotations,
-        setProducts
+        setProducts,
+        setInvoices
       }}
     >
       {children}

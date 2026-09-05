@@ -125,7 +125,7 @@ export function InvoiceDetail() {
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              Billed to: <strong className="text-slate-800">{invoice.customerName}</strong> • Origin Quote: {invoice.quoteId}
+              Billed to: <strong className="text-slate-800">{invoice.customer || invoice.customerName}</strong> • Origin Quote: {invoice.quoteId}
             </p>
           </div>
         </div>

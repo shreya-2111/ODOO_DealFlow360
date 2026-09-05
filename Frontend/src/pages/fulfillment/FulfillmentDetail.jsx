@@ -32,15 +32,13 @@ export function FulfillmentDetail() {
   const { currentUser } = useAuth();
   const { addToast } = useToast();
 
-  const order = fulfillmentOrders.find((o) => o.id === id);
+  const order = (fulfillmentOrders || []).find((o) => o.id === id || o.orderId === id);
 
   // Warehouse Split table state (Requirement 13)
   const [isManualOverride, setIsManualOverride] = useState(false);
   const [splitRows, setSplitRows] = useState([
-    { warehouseId: 'WH-AHMEDABAD', warehouse: 'Ahmedabad Warehouse', quantity: 3, shipments: 1, estimatedCost: 1350 },
-    { warehouseId: 'WH-MUMBAI', warehouse: 'Mumbai Warehouse', quantity: 2, shipments: 1, estimatedCost: 700 },
-    { warehouseId: 'WH-DELHI', warehouse: 'Delhi Warehouse', quantity: 0, shipments: 0, estimatedCost: 0 },
-    { warehouseId: 'WH-BLR', warehouse: 'Bengaluru Hub', quantity: 0, shipments: 0, estimatedCost: 0 }
+    { warehouseId: 'WH-MUMBAI', warehouse: 'Mumbai Mega-Hub', quantity: 1, shipments: 1, estimatedCost: 700 },
+    { warehouseId: 'WH-AHMEDABAD', warehouse: 'Ahmedabad Warehouse', quantity: 1, shipments: 1, estimatedCost: 450 }
   ]);
   const [hasNewStockArrived, setHasNewStockArrived] = useState(false);
 

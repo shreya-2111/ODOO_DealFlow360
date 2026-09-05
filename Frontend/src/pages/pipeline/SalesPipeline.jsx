@@ -109,9 +109,8 @@ export function SalesPipeline() {
       <div className="flex gap-4 overflow-x-auto pb-4">
         {columns.map((col) => {
           const colQuotes = quotations.filter((q) => {
-            if (col.id === 'Fulfillment') return q.stage === 'Confirmed' && q.id === 'QT-2026-845';
-            if (col.id === 'Completed') return false;
-            return q.stage === col.id;
+            const currentStage = q.stage || q.status;
+            return currentStage === col.id;
           });
 
           const colTotal = colQuotes.reduce((sum, q) => {

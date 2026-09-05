@@ -33,11 +33,17 @@ export function FulfillmentList() {
       (activeTab === 'READY' && order.status === 'Ready to Ship') ||
       (activeTab === 'DISPATCHED' && order.status === 'Dispatched');
 
+    const idStr = (order.id || order.orderId || '').toLowerCase();
+    const custStr = (order.customer || order.customerName || '').toLowerCase();
+    const quoteStr = (order.quoteId || '').toLowerCase();
+    const destStr = (order.destination || '').toLowerCase();
+    const q = (searchQuery || '').toLowerCase();
+
     const matchesSearch =
-      order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.quoteId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.destination.toLowerCase().includes(searchQuery.toLowerCase());
+      idStr.includes(q) ||
+      custStr.includes(q) ||
+      quoteStr.includes(q) ||
+      destStr.includes(q);
 
     return matchesTab && matchesSearch;
   });

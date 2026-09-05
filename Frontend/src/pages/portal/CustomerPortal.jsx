@@ -40,7 +40,7 @@ export function CustomerPortal() {
   const { currentUser } = useAuth();
   const { addToast } = useToast();
 
-  const [selectedQuoteId, setSelectedQuoteId] = useState(quotations[0]?.id || 'QT-2026-901');
+  const [selectedQuoteId, setSelectedQuoteId] = useState(quotations[0]?.id || 'QT-2026-001');
 
   // Modals state (Requirement 15)
   const [isQuestionModalOpen, setIsQuestionModalOpen] = useState(false);
