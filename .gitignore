@@ -29,3 +29,6 @@ dist-ssr
 # Vite cache
 .vite
 **/.vite
+
+# Local Interview & Prep Notes (Private)
+*INTERVIEW_GUIDE.md

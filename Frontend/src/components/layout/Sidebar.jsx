@@ -115,9 +115,11 @@ export function Sidebar({ isOpen, onClose }) {
         {/* Brand Header */}
         <div className="h-16 px-5 flex items-center justify-between border-b border-slate-100">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-600 to-indigo-700 flex items-center justify-center text-white shadow-sm font-black text-lg">
-              360
-            </div>
+            <img
+              src="/logo.png"
+              alt="DealFlow360"
+              className="h-9 w-9 object-contain rounded-lg shadow-2xs border border-slate-100 bg-white"
+            />
             <div>
               <div className="font-bold text-slate-900 text-base leading-none tracking-tight flex items-center gap-1">
                 DealFlow<span className="text-brand-600">360</span>

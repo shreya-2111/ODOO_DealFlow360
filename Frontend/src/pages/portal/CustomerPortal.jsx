@@ -147,10 +147,12 @@ export function CustomerPortal() {
       {/* Customer Portal Top Header (Distinct Customer Look - Requirement 15) */}
       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-brand-600 text-white flex items-center justify-center font-bold text-sm">
-              360
-            </div>
+          <div className="flex items-center gap-2.5">
+            <img
+              src="/logo.png"
+              alt="DealFlow360"
+              className="h-8 w-8 object-contain rounded-lg border border-slate-100 bg-white"
+            />
             <span className="font-bold text-slate-900 text-base">DealFlow360 Customer Portal</span>
             <span className="text-xs text-slate-400">• Buyer Experience</span>
           </div>
