@@ -1,9 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
 import { Card, CardHeader, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend
+} from 'recharts';
 import {
   BarChart3,
   TrendingUp,
@@ -13,42 +30,97 @@ import {
   Calendar,
   Layers,
   Sparkles,
-  PieChart
+  Filter,
+  Users,
+  CheckSquare,
+  Package
 } from 'lucide-react';
 
 export function AdminReports() {
-  const { quotations, subscriptions } = useData();
+  const { quotations, products } = useData();
   const { addToast } = useToast();
-  const [timeRange, setTimeRange] = useState('Q3-2026');
+
+  // Filters (Requirement 18)
+  const [periodFilter, setPeriodFilter] = useState('Q3-2026');
+  const [teamFilter, setTeamFilter] = useState('ALL');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [productFilter, setProductFilter] = useState('ALL');
 
   const handleExport = (format) => {
-    addToast(`Generating executive ${format.toUpperCase()} performance report for ${timeRange}...`, 'info');
+    addToast(`Exporting ${format.toUpperCase()} executive reports for ${periodFilter}...`, 'info');
   };
+
+  // Recharts Datasets (Requirement 18)
+  const pipelineData = [
+    { stage: 'Draft', value: 8.5, deals: 4 },
+    { stage: 'Pending Approval', value: 14.45, deals: 2 },
+    { stage: 'Approved', value: 9.8, deals: 3 },
+    { stage: 'Under Negotiation', value: 5.2, deals: 2 },
+    { stage: 'Confirmed', value: 18.5, deals: 5 },
+    { stage: 'Fulfillment', value: 12.0, deals: 3 }
+  ];
+
+  const conversionFunnelData = [
+    { step: 'Quotes Created', count: 48, conversionRate: '100%' },
+    { step: 'Manager Approved', count: 38, conversionRate: '79%' },
+    { step: 'Negotiated Terms', count: 32, conversionRate: '67%' },
+    { step: 'Digitally Signed', count: 26, conversionRate: '54%' },
+    { step: 'Fulfilled & Invoiced', count: 24, conversionRate: '50%' }
+  ];
+
+  const discountTrendData = [
+    { month: 'Apr 2026', avgDiscount: 8.2, governanceLimit: 15.0, margin: 52.4 },
+    { month: 'May 2026', avgDiscount: 10.5, governanceLimit: 15.0, margin: 49.8 },
+    { month: 'Jun 2026', avgDiscount: 14.2, governanceLimit: 15.0, margin: 46.1 },
+    { month: 'Jul 2026', avgDiscount: 12.0, governanceLimit: 15.0, margin: 48.5 },
+    { month: 'Aug 2026', avgDiscount: 11.4, governanceLimit: 15.0, margin: 49.2 },
+    { month: 'Sep 2026', avgDiscount: 9.8, governanceLimit: 15.0, margin: 51.0 }
+  ];
+
+  const turnaroundData = [
+    { rep: 'Amit Sharma', managerHours: 3.5, financeHours: 4.2 },
+    { rep: 'Rohan Deshmukh', managerHours: 5.1, financeHours: 6.8 },
+    { rep: 'Neha Kapoor', managerHours: 2.8, financeHours: 3.4 },
+    { rep: 'Vikram Joshi', managerHours: 4.2, financeHours: 5.0 }
+  ];
+
+  const revenueByMonthData = [
+    { month: 'Apr', oneTime: 18.2, recurring: 6.5, total: 24.7 },
+    { month: 'May', oneTime: 22.0, recurring: 8.0, total: 30.0 },
+    { month: 'Jun', oneTime: 28.5, recurring: 9.5, total: 38.0 },
+    { month: 'Jul', oneTime: 25.0, recurring: 11.0, total: 36.0 },
+    { month: 'Aug', oneTime: 32.4, recurring: 12.8, total: 45.2 },
+    { month: 'Sep', oneTime: 35.8, recurring: 14.5, total: 50.3 }
+  ];
+
+  const productPerformanceData = [
+    { name: 'Hardware Servers & Laptops', value: 48, fill: '#3b82f6' },
+    { name: 'Cloud Storage & BI Subscriptions', value: 28, fill: '#6366f1' },
+    { name: 'On-Site Network Deployments', value: 16, fill: '#10b981' },
+    { name: '24/7 AMC SLA Contracts', value: 8, fill: '#f59e0b' }
+  ];
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
-            Executive Performance & Revenue Intelligence (INR ₹)
+          <div className="flex items-center gap-2">
+            <span className="text-xs px-2 py-0.5 rounded bg-brand-50 text-brand-700 font-bold uppercase">
+              Executive Analytics & Governance
+            </span>
+            <span className="text-xs text-slate-400">• Currency: INR (₹) in Lakhs</span>
+          </div>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 mt-1">
+            Reports & Business Intelligence
           </h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Pipeline cycle velocity, approval bottleneck analytics, and margin discount leakage
+          <p className="text-xs text-slate-500 mt-0.5">
+            Real-time pipeline volume, conversion ratios, discount trends, SLA turnaround, and revenue performance
           </p>
         </div>
 
-        {/* Filters & Export */}
+        {/* Export Buttons */}
         <div className="flex items-center gap-2">
-          <select
-            value={timeRange}
-            onChange={(e) => setTimeRange(e.target.value)}
-            className="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-700 font-medium focus:outline-none"
-          >
-            <option value="Q3-2026">Current Quarter (Q3 2026)</option>
-            <option value="Q2-2026">Previous Quarter (Q2 2026)</option>
-            <option value="FY-2026">Full Year 2026-27</option>
-          </select>
           <Button
             variant="secondary"
             size="sm"
@@ -63,134 +135,279 @@ export function AdminReports() {
             icon={Download}
             onClick={() => handleExport('pdf')}
           >
-            Export PDF
+            Export PDF Report
           </Button>
         </div>
       </div>
 
-      {/* KPI Cards */}
+      {/* FILTER CONTROLS BAR (Requirement 18: Period, Sales Team, Approval Status, Product) */}
+      <Card className="border-slate-200 bg-slate-50/60">
+        <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+          {/* Period Filter */}
+          <div className="space-y-1">
+            <label className="font-semibold text-slate-700 flex items-center gap-1">
+              <Calendar className="w-3.5 h-3.5 text-slate-400" /> Period:
+            </label>
+            <select
+              value={periodFilter}
+              onChange={(e) => setPeriodFilter(e.target.value)}
+              className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-brand-500"
+            >
+              <option value="Q3-2026">Current Quarter (Q3 2026)</option>
+              <option value="Q2-2026">Previous Quarter (Q2 2026)</option>
+              <option value="FY-2026">Full Financial Year 2026-27</option>
+            </select>
+          </div>
+
+          {/* Sales Team Filter */}
+          <div className="space-y-1">
+            <label className="font-semibold text-slate-700 flex items-center gap-1">
+              <Users className="w-3.5 h-3.5 text-slate-400" /> Sales Team:
+            </label>
+            <select
+              value={teamFilter}
+              onChange={(e) => setTeamFilter(e.target.value)}
+              className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-brand-500"
+            >
+              <option value="ALL">All Sales Teams</option>
+              <option value="enterprise">Enterprise Direct (North/West)</option>
+              <option value="regional">Regional Mid-Market (South/East)</option>
+              <option value="channel">Strategic Channel Partners</option>
+            </select>
+          </div>
+
+          {/* Approval Status Filter */}
+          <div className="space-y-1">
+            <label className="font-semibold text-slate-700 flex items-center gap-1">
+              <CheckSquare className="w-3.5 h-3.5 text-slate-400" /> Approval Status:
+            </label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-brand-500"
+            >
+              <option value="ALL">All Approval Stages</option>
+              <option value="approved">Fully Approved Deals</option>
+              <option value="pending">Pending Manager/Finance</option>
+              <option value="breached">Discount Breach Exception</option>
+            </select>
+          </div>
+
+          {/* Product Filter */}
+          <div className="space-y-1">
+            <label className="font-semibold text-slate-700 flex items-center gap-1">
+              <Package className="w-3.5 h-3.5 text-slate-400" /> Product Category:
+            </label>
+            <select
+              value={productFilter}
+              onChange={(e) => setProductFilter(e.target.value)}
+              className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-brand-500"
+            >
+              <option value="ALL">All Categories</option>
+              <option value="Hardware">Hardware & Compute Nodes</option>
+              <option value="Subscriptions">Software & Cloud Subscriptions</option>
+              <option value="Services">Professional Deployment Services</option>
+            </select>
+          </div>
+        </div>
+      </Card>
+
+      {/* KPI HIGHLIGHT STRIP */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="border-slate-200">
-          <CardContent className="p-5">
-            <span className="text-xs font-semibold text-slate-500">Avg. Approval Turnaround</span>
-            <div className="mt-2 text-2xl font-bold text-slate-900">6.4 Hours</div>
-            <p className="text-[11px] text-emerald-700 font-semibold mt-1">⚡ 42% faster than Q2 benchmark</p>
+          <CardContent className="p-4">
+            <span className="text-[11px] font-semibold text-slate-400 uppercase">Avg. Approval SLA</span>
+            <div className="text-2xl font-bold text-slate-900 mt-1">4.8 Hours</div>
+            <p className="text-[11px] text-emerald-700 font-semibold mt-1">⚡ 38% faster than benchmark</p>
           </CardContent>
         </Card>
 
         <Card className="border-slate-200">
-          <CardContent className="p-5">
-            <span className="text-xs font-semibold text-slate-500">Average Deal Cycle</span>
-            <div className="mt-2 text-2xl font-bold text-slate-900">18.2 Days</div>
-            <p className="text-[11px] text-slate-500 mt-1">From initial draft to customer signing</p>
+          <CardContent className="p-4">
+            <span className="text-[11px] font-semibold text-slate-400 uppercase">Quote-to-Win Ratio</span>
+            <div className="text-2xl font-bold text-emerald-700 mt-1">54.2%</div>
+            <p className="text-[11px] text-emerald-700 font-semibold mt-1">+4.8% increase in Q3</p>
           </CardContent>
         </Card>
 
         <Card className="border-slate-200">
-          <CardContent className="p-5">
-            <span className="text-xs font-semibold text-slate-500">Realized Gross Margin</span>
-            <div className="mt-2 text-2xl font-bold text-emerald-700">48.6%</div>
-            <p className="text-[11px] text-emerald-700 font-semibold mt-1">+3.2pt margin defense via CPQ</p>
+          <CardContent className="p-4">
+            <span className="text-[11px] font-semibold text-slate-400 uppercase">Realized Gross Margin</span>
+            <div className="text-2xl font-bold text-slate-900 mt-1">49.4%</div>
+            <p className="text-[11px] text-brand-700 font-semibold mt-1">Protected by CPQ governance</p>
           </CardContent>
         </Card>
 
         <Card className="border-slate-200">
-          <CardContent className="p-5">
-            <span className="text-xs font-semibold text-slate-500">Add-On Upsell Attach Rate</span>
-            <div className="mt-2 text-2xl font-bold text-brand-700">64.0%</div>
-            <p className="text-[11px] text-brand-700 font-semibold mt-1">AMC & Optical bundle recommendations</p>
+          <CardContent className="p-4">
+            <span className="text-[11px] font-semibold text-slate-400 uppercase">Quarterly Revenue (Q3)</span>
+            <div className="text-2xl font-black text-brand-700 mt-1">₹50.3 Lakh</div>
+            <p className="text-[11px] text-slate-500 mt-1">71% CapEx / 29% Recurring OpEx</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Charts & Analytical Breakdowns Grid */}
+      {/* 6 RECHARTS ANALYTICAL GRAPHS (Requirement 18) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Discount Leakage Breakdown by Category */}
+        {/* CHART 1: Sales Pipeline by Stage */}
         <Card>
           <CardHeader
-            title="Discount Concession vs Ceiling Analysis"
-            description="Comparison of realized discount percentages against governance thresholds"
+            title="1. Sales Pipeline Distribution"
+            description="Total deal valuation in ₹ Lakh across active pipeline stages"
           />
-          <CardContent className="p-5 space-y-4 text-xs">
-            <div className="space-y-1.5">
-              <div className="flex justify-between font-semibold">
-                <span className="text-slate-800">Professional Services (Migration & Setup)</span>
-                <span className="text-rose-700 font-bold">16.4% Avg Discount (Limit: 10%)</span>
-              </div>
-              <div className="w-full h-3 rounded-full bg-slate-100 overflow-hidden relative">
-                <div className="h-full bg-rose-500 rounded-full" style={{ width: '82%' }} />
-              </div>
-              <span className="text-[10px] text-slate-400">High breach frequency; consider updating service packaging.</span>
-            </div>
-
-            <div className="space-y-1.5">
-              <div className="flex justify-between font-semibold">
-                <span className="text-slate-800">Enterprise Hardware & Commercial Displays</span>
-                <span className="text-emerald-700 font-bold">11.2% Avg Discount (Limit: 15%)</span>
-              </div>
-              <div className="w-full h-3 rounded-full bg-slate-100 overflow-hidden relative">
-                <div className="h-full bg-emerald-500 rounded-full" style={{ width: '56%' }} />
-              </div>
-              <span className="text-[10px] text-slate-400">Within safety threshold; strong hardware margins.</span>
-            </div>
-
-            <div className="space-y-1.5">
-              <div className="flex justify-between font-semibold">
-                <span className="text-slate-800">Cloud Antivirus SaaS & AMC Plans</span>
-                <span className="text-brand-700 font-bold">14.8% Avg Discount (Limit: 20%)</span>
-              </div>
-              <div className="w-full h-3 rounded-full bg-slate-100 overflow-hidden relative">
-                <div className="h-full bg-brand-500 rounded-full" style={{ width: '60%' }} />
-              </div>
-              <span className="text-[10px] text-slate-400">Healthy recurring expansion rate.</span>
+          <CardContent className="p-4 pt-0">
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={pipelineData} margin={{ top: 10, right: 10, left: -10, bottom: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                  <XAxis dataKey="stage" tick={{ fontSize: 10, fill: '#64748B' }} angle={-15} textAnchor="end" />
+                  <YAxis tick={{ fontSize: 10, fill: '#64748B' }} unit="L" />
+                  <Tooltip
+                    formatter={(val) => [`₹${val} Lakh`, 'Pipeline Value']}
+                    contentStyle={{ borderRadius: '8px', fontSize: '12px', border: '1px solid #CBD5E1' }}
+                  />
+                  <Bar dataKey="value" fill="#4F46E5" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           </CardContent>
         </Card>
 
-        {/* Top Attached Upsells */}
+        {/* CHART 2: Quote Conversion Funnel */}
         <Card>
           <CardHeader
-            title="Top Attached Upsell Recommendations"
-            description="Add-on products contributing highest incremental Gross Profit in INR"
+            title="2. Quote Conversion & Drop-off Funnel"
+            description="Stage conversion velocity from proposal draft to cash collection"
           />
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="bg-slate-50/80 border-b border-slate-200/80 text-slate-500 uppercase font-semibold text-[10px] tracking-wider">
-                  <th className="px-5 py-3">Recommended Add-on</th>
-                  <th className="px-4 py-3">Attach %</th>
-                  <th className="px-4 py-3">Incremental MRR/Deal</th>
-                  <th className="px-5 py-3 text-right">Margin Boost</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                <tr className="hover:bg-slate-50/70">
-                  <td className="px-5 py-3.5 font-semibold text-slate-900">
-                    24/7 AMC Support & Priority SLA Plan
-                  </td>
-                  <td className="px-4 py-3.5 font-bold text-emerald-700">74%</td>
-                  <td className="px-4 py-3.5 font-medium text-slate-800">+₹8,500/mo</td>
-                  <td className="px-5 py-3.5 text-right font-bold text-emerald-700">+82% Margin</td>
-                </tr>
-                <tr className="hover:bg-slate-50/70">
-                  <td className="px-5 py-3.5 font-semibold text-slate-900">
-                    D-Link Cat-6 Optical Cable Bundle (Pack of 10)
-                  </td>
-                  <td className="px-4 py-3.5 font-bold text-brand-700">62%</td>
-                  <td className="px-4 py-3.5 font-medium text-slate-800">+₹6,500 CapEx</td>
-                  <td className="px-5 py-3.5 text-right font-bold text-emerald-700">+51% Margin</td>
-                </tr>
-                <tr className="hover:bg-slate-50/70">
-                  <td className="px-5 py-3.5 font-semibold text-slate-900">
-                    QuickHeal / Cloud Security Pro Suite
-                  </td>
-                  <td className="px-4 py-3.5 font-bold text-indigo-700">51%</td>
-                  <td className="px-4 py-3.5 font-medium text-slate-800">+₹1,500/mo</td>
-                  <td className="px-5 py-3.5 text-right font-bold text-emerald-700">+83% Margin</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          <CardContent className="p-4 pt-0">
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={conversionFunnelData} layout="vertical" margin={{ top: 10, right: 30, left: 40, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E2E8F0" />
+                  <XAxis type="number" tick={{ fontSize: 10, fill: '#64748B' }} />
+                  <YAxis type="category" dataKey="step" tick={{ fontSize: 10, fill: '#334155' }} />
+                  <Tooltip
+                    formatter={(val, name, props) => [`${val} Deals (${props.payload.conversionRate})`, 'Volume']}
+                    contentStyle={{ borderRadius: '8px', fontSize: '12px', border: '1px solid #CBD5E1' }}
+                  />
+                  <Bar dataKey="count" fill="#10B981" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* CHART 3: Discount Trends & Margin Defense */}
+        <Card>
+          <CardHeader
+            title="3. Monthly Discount Trends vs Governance Ceiling"
+            description="Average discount conceded vs category limits and gross margin defense"
+          />
+          <CardContent className="p-4 pt-0">
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={discountTrendData} margin={{ top: 10, right: 15, left: -15, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                  <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#64748B' }} />
+                  <YAxis tick={{ fontSize: 10, fill: '#64748B' }} unit="%" />
+                  <Tooltip
+                    formatter={(val) => [`${val}%`, '']}
+                    contentStyle={{ borderRadius: '8px', fontSize: '12px', border: '1px solid #CBD5E1' }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
+                  <Line type="monotone" dataKey="avgDiscount" name="Avg Discount %" stroke="#EF4444" strokeWidth={2} dot={{ r: 3 }} />
+                  <Line type="monotone" dataKey="governanceLimit" name="Ceiling Limit (15%)" stroke="#94A3B8" strokeDasharray="4 4" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="margin" name="Gross Margin %" stroke="#10B981" strokeWidth={2} dot={{ r: 3 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* CHART 4: Approval Turnaround by Sales Representative */}
+        <Card>
+          <CardHeader
+            title="4. Approval Turnaround Hours by Representative"
+            description="Manager and Finance signoff duration in hours"
+          />
+          <CardContent className="p-4 pt-0">
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={turnaroundData} margin={{ top: 10, right: 15, left: -15, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                  <XAxis dataKey="rep" tick={{ fontSize: 10, fill: '#64748B' }} />
+                  <YAxis tick={{ fontSize: 10, fill: '#64748B' }} unit="h" />
+                  <Tooltip
+                    formatter={(val) => [`${val} Hours`, '']}
+                    contentStyle={{ borderRadius: '8px', fontSize: '12px', border: '1px solid #CBD5E1' }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
+                  <Bar dataKey="managerHours" name="Manager Approval (Hours)" fill="#6366F1" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="financeHours" name="Finance Gate (Hours)" fill="#F59E0B" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* CHART 5: Revenue Trajectory (One-Time CapEx vs Recurring OpEx) */}
+        <Card>
+          <CardHeader
+            title="5. Revenue Trajectory (CapEx vs OpEx)"
+            description="Monthly realized revenue split (in ₹ Lakhs)"
+          />
+          <CardContent className="p-4 pt-0">
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={revenueByMonthData} margin={{ top: 10, right: 15, left: -15, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                  <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#64748B' }} />
+                  <YAxis tick={{ fontSize: 10, fill: '#64748B' }} unit="L" />
+                  <Tooltip
+                    formatter={(val) => [`₹${val} Lakh`, '']}
+                    contentStyle={{ borderRadius: '8px', fontSize: '12px', border: '1px solid #CBD5E1' }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
+                  <Area type="monotone" dataKey="oneTime" name="One-Time Hardware / CapEx" stackId="1" stroke="#3B82F6" fill="#93C5FD" />
+                  <Area type="monotone" dataKey="recurring" name="Recurring Subscriptions / OpEx" stackId="1" stroke="#10B981" fill="#A7F3D0" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* CHART 6: Product Category Performance Share */}
+        <Card>
+          <CardHeader
+            title="6. Product Category Revenue Contribution"
+            description="Share of total gross bookings by solution vertical"
+          />
+          <CardContent className="p-4 pt-0">
+            <div className="h-64 w-full flex items-center justify-center">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={productPerformanceData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={55}
+                    outerRadius={80}
+                    paddingAngle={3}
+                    dataKey="value"
+                  >
+                    {productPerformanceData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(val) => [`${val}% Share`, 'Contribution']}
+                    contentStyle={{ borderRadius: '8px', fontSize: '12px', border: '1px solid #CBD5E1' }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: '11px' }} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
         </Card>
       </div>
     </div>

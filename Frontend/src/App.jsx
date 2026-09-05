@@ -25,6 +25,7 @@ import { AdminReports } from './pages/reports/AdminReports';
 import { ProductCatalog } from './pages/products/ProductCatalog';
 import { ProductDetail } from './pages/products/ProductDetail';
 import { GovernanceSettings } from './pages/settings/GovernanceSettings';
+import { SalesPipeline } from './pages/pipeline/SalesPipeline';
 
 export function App() {
   return (
@@ -40,6 +41,9 @@ export function App() {
               <Route element={<AppLayout />}>
                 {/* Screen 2: Sales Dashboard */}
                 <Route path="/dashboard" element={<SalesDashboard />} />
+
+                {/* Pipeline (Kanban) */}
+                <Route path="/pipeline" element={<SalesPipeline />} />
 
                 {/* Screens 3 & 4: Quotations & CPQ */}
                 <Route path="/quotations" element={<QuotationsList />} />
@@ -57,8 +61,9 @@ export function App() {
                 <Route path="/subscriptions" element={<SubscriptionsList />} />
                 <Route path="/subscriptions/:id" element={<BillingDetail />} />
 
-                {/* Screen 11: Customer Portal */}
+                {/* Screen 11: Customer Portal & Customers */}
                 <Route path="/portal" element={<CustomerPortal />} />
+                <Route path="/customers" element={<CustomerPortal />} />
 
                 {/* Screens 12 & 13: Invoices Ledger & Reconciliation */}
                 <Route path="/invoices" element={<InvoicesList />} />
@@ -74,8 +79,9 @@ export function App() {
                 <Route path="/products" element={<ProductCatalog />} />
                 <Route path="/products/:id" element={<ProductDetail />} />
 
-                {/* Screen 18: Governance Rules */}
+                {/* Screen 18: Governance Rules & Admin Settings */}
                 <Route path="/governance" element={<GovernanceSettings />} />
+                <Route path="/settings" element={<GovernanceSettings />} />
               </Route>
 
               {/* Default landing page route -> display 1st Login / Register page */}

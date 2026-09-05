@@ -1,24 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { Card, CardContent } from '../../components/ui/Card';
+import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
 import { Input, Select, TextArea } from '../../components/ui/Input';
 import {
-  FileSpreadsheet,
   Plus,
   Search,
   Filter,
   ArrowUpDown,
+  ChevronLeft,
   ChevronRight,
   Sparkles,
-  AlertTriangle,
-  Building,
-  IndianRupee
+  Calendar,
+  User,
+  ShieldAlert,
+  SlidersHorizontal,
+  FileSpreadsheet
 } from 'lucide-react';
 
 export function QuotationsList() {
@@ -29,7 +31,12 @@ export function QuotationsList() {
 
   const [activeStageTab, setActiveStageTab] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
-  const [tierFilter, setTierFilter] = useState('ALL');
+  const [customerFilter, setCustomerFilter] = useState('ALL');
+  const [amountFilter, setAmountFilter] = useState('ALL');
+  const [sortBy, setSortBy] = useState('date_desc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 6;
+
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
 
   // New quotation form state
@@ -37,31 +44,79 @@ export function QuotationsList() {
   const [contactPerson, setContactPerson] = useState('');
   const [contactEmail, setContactEmail] = useState('');
   const [customerTier, setCustomerTier] = useState('Enterprise Tier');
-  const [currency, setCurrency] = useState('INR');
   const [selectedProductId, setSelectedProductId] = useState(products[0]?.id || 'PRD-101');
   const [initialQty, setInitialQty] = useState(1);
   const [initialDiscount, setInitialDiscount] = useState(5);
   const [quoteNotes, setQuoteNotes] = useState('');
 
-  // Filtering
-  const filteredQuotations = quotations.filter((q) => {
-    const matchesStage =
-      activeStageTab === 'ALL' ||
-      (activeStageTab === 'DRAFT' && q.status === 'Draft') ||
-      (activeStageTab === 'PENDING' && q.status === 'Pending Approval') ||
-      (activeStageTab === 'APPROVED' && q.status === 'Approved') ||
-      (activeStageTab === 'CONFIRMED' && q.status === 'Confirmed');
+  // Extract unique customer names for filter
+  const uniqueCustomers = useMemo(() => {
+    const list = quotations.map((q) => q.customer || q.customerName).filter(Boolean);
+    return Array.from(new Set(list));
+  }, [quotations]);
 
-    const matchesTier = tierFilter === 'ALL' || q.customerTier === tierFilter;
+  // Filtering and Sorting
+  const filteredAndSortedQuotations = useMemo(() => {
+    return quotations
+      .filter((q) => {
+        const stage = q.stage || q.status || 'Draft';
+        const customer = q.customer || q.customerName || '';
+        const rep = q.salesRep || '';
+        const id = q.id || '';
+        const fin = calculateQuoteFinancials(q.items, q.customerTier, q.orderDiscountPercent);
 
-    const matchesSearch =
-      q.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      q.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      q.contactPerson.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      q.salesRep.toLowerCase().includes(searchQuery.toLowerCase());
+        // Stage filter
+        if (activeStageTab !== 'ALL' && stage !== activeStageTab) {
+          return false;
+        }
 
-    return matchesStage && matchesTier && matchesSearch;
-  });
+        // Customer filter
+        if (customerFilter !== 'ALL' && customer !== customerFilter) {
+          return false;
+        }
+
+        // Amount filter
+        if (amountFilter === 'under_1l' && fin.totalAmount >= 100000) return false;
+        if (amountFilter === '1l_5l' && (fin.totalAmount < 100000 || fin.totalAmount > 500000)) return false;
+        if (amountFilter === 'above_5l' && fin.totalAmount <= 500000) return false;
+
+        // Search query
+        if (searchQuery.trim()) {
+          const qText = searchQuery.toLowerCase();
+          const match =
+            customer.toLowerCase().includes(qText) ||
+            id.toLowerCase().includes(qText) ||
+            rep.toLowerCase().includes(qText) ||
+            (q.contactPerson && q.contactPerson.toLowerCase().includes(qText));
+          if (!match) return false;
+        }
+
+        return true;
+      })
+      .sort((a, b) => {
+        const finA = calculateQuoteFinancials(a.items, a.customerTier, a.orderDiscountPercent);
+        const finB = calculateQuoteFinancials(b.items, b.customerTier, b.orderDiscountPercent);
+        const dateA = new Date(a.createdDate || a.createdAt || '2026-01-01');
+        const dateB = new Date(b.createdDate || b.createdAt || '2026-01-01');
+        const riskA = a.riskScore !== undefined ? a.riskScore : 30;
+        const riskB = b.riskScore !== undefined ? b.riskScore : 30;
+
+        if (sortBy === 'date_desc') return dateB - dateA;
+        if (sortBy === 'date_asc') return dateA - dateB;
+        if (sortBy === 'amount_desc') return finB.totalAmount - finA.totalAmount;
+        if (sortBy === 'amount_asc') return finA.totalAmount - finB.totalAmount;
+        if (sortBy === 'risk_desc') return riskB - riskA;
+        if (sortBy === 'customer_asc') return (a.customer || '').localeCompare(b.customer || '');
+        return 0;
+      });
+  }, [quotations, activeStageTab, customerFilter, amountFilter, searchQuery, sortBy, calculateQuoteFinancials]);
+
+  // Pagination calculation
+  const totalPages = Math.max(1, Math.ceil(filteredAndSortedQuotations.length / pageSize));
+  const paginatedQuotations = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredAndSortedQuotations.slice(start, start + pageSize);
+  }, [filteredAndSortedQuotations, currentPage, pageSize]);
 
   const handleCreateQuote = (e) => {
     e.preventDefault();
@@ -75,21 +130,28 @@ export function QuotationsList() {
 
     const newQuote = {
       id: newQuoteId,
+      customer: customerName,
       customerName,
       contactPerson,
       contactEmail: contactEmail || `${contactPerson.toLowerCase().replace(/\s+/g, '.')}@${customerName.toLowerCase().replace(/\s+/g, '')}.in`,
       customerTier,
       salesRep: currentUser.name,
+      stage: 'Draft',
       status: 'Draft',
+      approvalStatus: 'Not Submitted',
+      createdDate: new Date().toISOString().substring(0, 10),
       createdAt: new Date().toISOString().substring(0, 10),
       validUntil: new Date(Date.now() + 30 * 86400000).toISOString().substring(0, 10),
       currency: 'INR',
-      urgencyScore: 50,
-      notes: quoteNotes || 'Initial proposal draft created in CPQ engine.',
+      riskScore: 20,
+      daysInactive: 0,
+      orderDiscountPercent: 0,
+      customerNotes: quoteNotes || 'Initial proposal draft created in CPQ engine.',
       items: [
         {
           id: `item-${Date.now()}`,
           productId: prd.id,
+          name: prd.name,
           productName: prd.name,
           sku: prd.sku,
           category: prd.category,
@@ -99,24 +161,16 @@ export function QuotationsList() {
           unitPrice: prd.basePrice,
           unitCost: prd.unitCost,
           discountPercent: Number(initialDiscount),
-          taxRate: prd.taxRate
+          taxRate: prd.taxRate || 18.0
         }
       ],
       approvalSteps: [
-        { stepNumber: 1, role: 'Sales Rep Submission', user: currentUser.name, status: 'pending', timestamp: null },
-        { stepNumber: 2, role: 'Sales VP Regional Approval', user: 'Priya Patel', status: 'upcoming', timestamp: null },
-        { stepNumber: 3, role: 'Finance Controller', user: 'Rajesh Verma', status: 'upcoming', timestamp: null },
-        { stepNumber: 4, role: 'Customer Confirmation', user: contactPerson, status: 'upcoming', timestamp: null }
+        { role: 'Sales Rep Submission', reviewer: currentUser.name, status: 'approved', timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16), comments: 'Draft quotation configured.' },
+        { role: 'Sales Manager Approval', reviewer: 'Priya Patel', status: 'pending', timestamp: null, comments: 'Under standard review.' }
       ],
-      auditLogs: [
-        {
-          id: `log-${Date.now()}`,
-          timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
-          actor: currentUser.name,
-          action: 'Created new quotation draft'
-        }
-      ],
-      customerNotes: ''
+      timeline: [
+        { sender: `${currentUser.name} (Sales Rep)`, action: 'Created quotation draft', timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16), note: 'Initial proposal created.' }
+      ]
     };
 
     addQuotation(newQuote);
@@ -127,10 +181,11 @@ export function QuotationsList() {
 
   const stageCounts = {
     ALL: quotations.length,
-    DRAFT: quotations.filter((q) => q.status === 'Draft').length,
-    PENDING: quotations.filter((q) => q.status === 'Pending Approval').length,
-    APPROVED: quotations.filter((q) => q.status === 'Approved').length,
-    CONFIRMED: quotations.filter((q) => q.status === 'Confirmed').length,
+    Draft: quotations.filter((q) => (q.stage || q.status) === 'Draft').length,
+    'Pending Approval': quotations.filter((q) => (q.stage || q.status) === 'Pending Approval').length,
+    Approved: quotations.filter((q) => (q.stage || q.status) === 'Approved').length,
+    'Under Negotiation': quotations.filter((q) => (q.stage || q.status) === 'Under Negotiation').length,
+    Confirmed: quotations.filter((q) => (q.stage || q.status) === 'Confirmed').length,
   };
 
   return (
@@ -138,11 +193,17 @@ export function QuotationsList() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
-            Quotations & CPQ Pipeline
+          <div className="flex items-center gap-2">
+            <span className="text-xs px-2 py-0.5 rounded bg-brand-50 text-brand-700 font-bold uppercase">
+              B1 — Quotations Workspace
+            </span>
+            <span className="text-xs text-slate-400">• Currency: INR (₹)</span>
+          </div>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 mt-1">
+            B2B Quotations Master List
           </h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Configure line items, validate pricing tiers, apply discounts, and route for approvals (INR ₹)
+          <p className="text-xs text-slate-500 mt-0.5">
+            Manage multi-tier deals, track approval workflows, audit risk scores, and launch CPQ editor
           </p>
         </div>
 
@@ -162,16 +223,20 @@ export function QuotationsList() {
         <div className="border-b border-slate-200 px-4 pt-2 flex items-center gap-2 overflow-x-auto">
           {[
             { id: 'ALL', label: 'All Quotations', count: stageCounts.ALL },
-            { id: 'DRAFT', label: 'Drafts', count: stageCounts.DRAFT },
-            { id: 'PENDING', label: 'Pending Approval', count: stageCounts.PENDING, badgeClass: 'bg-amber-100 text-amber-800' },
-            { id: 'APPROVED', label: 'Approved (Ready to Send)', count: stageCounts.APPROVED, badgeClass: 'bg-blue-100 text-blue-800' },
-            { id: 'CONFIRMED', label: 'Confirmed / Won', count: stageCounts.CONFIRMED, badgeClass: 'bg-emerald-100 text-emerald-800' },
+            { id: 'Draft', label: 'Drafts', count: stageCounts.Draft },
+            { id: 'Pending Approval', label: 'Pending Approval', count: stageCounts['Pending Approval'], badgeClass: 'bg-amber-100 text-amber-800' },
+            { id: 'Approved', label: 'Approved', count: stageCounts.Approved, badgeClass: 'bg-blue-100 text-blue-800' },
+            { id: 'Under Negotiation', label: 'Under Negotiation', count: stageCounts['Under Negotiation'], badgeClass: 'bg-purple-100 text-purple-800' },
+            { id: 'Confirmed', label: 'Confirmed', count: stageCounts.Confirmed, badgeClass: 'bg-emerald-100 text-emerald-800' },
           ].map((tab) => {
             const isActive = activeStageTab === tab.id;
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveStageTab(tab.id)}
+                onClick={() => {
+                  setActiveStageTab(tab.id);
+                  setCurrentPage(1);
+                }}
                 className={`flex items-center gap-2 px-4 py-3 text-xs font-semibold border-b-2 transition-all whitespace-nowrap -mb-px ${
                   isActive
                     ? 'border-brand-600 text-brand-700 bg-brand-50/50 rounded-t-lg'
@@ -192,32 +257,74 @@ export function QuotationsList() {
         </div>
 
         {/* Filter & Search Bar */}
-        <div className="p-4 border-b border-slate-100 bg-slate-50/60 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="relative w-full sm:w-80">
+        <div className="p-4 border-b border-slate-100 bg-slate-50/60 grid grid-cols-1 md:grid-cols-4 gap-3">
+          {/* Search */}
+          <div className="relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Search by quote #, client, rep..."
+              placeholder="Search quote #, customer, rep..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
               className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
             />
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <span className="text-xs text-slate-500 flex items-center gap-1 font-medium">
-              <Filter className="w-3.5 h-3.5 text-slate-400" /> Tier:
+          {/* Customer Filter */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-slate-500 whitespace-nowrap">Customer:</span>
+            <select
+              value={customerFilter}
+              onChange={(e) => {
+                setCustomerFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
+            >
+              <option value="ALL">All Customers</option>
+              {uniqueCustomers.map((cust) => (
+                <option key={cust} value={cust}>{cust}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Amount Filter */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-slate-500 whitespace-nowrap">Amount:</span>
+            <select
+              value={amountFilter}
+              onChange={(e) => {
+                setAmountFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
+            >
+              <option value="ALL">All Amounts</option>
+              <option value="under_1l">Under ₹1 Lakh</option>
+              <option value="1l_5l">₹1 Lakh - ₹5 Lakh</option>
+              <option value="above_5l">Above ₹5 Lakh</option>
+            </select>
+          </div>
+
+          {/* Sort By */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-slate-500 whitespace-nowrap flex items-center gap-1">
+              <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" /> Sort:
             </span>
             <select
-              value={tierFilter}
-              onChange={(e) => setTierFilter(e.target.value)}
-              className="bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
             >
-              <option value="ALL">All Tiers</option>
-              <option value="Enterprise Tier">Enterprise Tier (20% ceiling)</option>
-              <option value="Gold Tier">Gold Tier (15% ceiling)</option>
-              <option value="Silver Tier">Silver Tier (10% ceiling)</option>
-              <option value="Bronze Tier">Bronze Tier (5% ceiling)</option>
+              <option value="date_desc">Created Date (Newest)</option>
+              <option value="date_asc">Created Date (Oldest)</option>
+              <option value="amount_desc">Amount (High to Low)</option>
+              <option value="amount_asc">Amount (Low to High)</option>
+              <option value="risk_desc">Risk Score (High to Low)</option>
+              <option value="customer_asc">Customer Name (A to Z)</option>
             </select>
           </div>
         </div>
@@ -227,42 +334,48 @@ export function QuotationsList() {
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="bg-slate-50/80 border-b border-slate-200/80 text-slate-500 uppercase font-semibold text-[10px] tracking-wider">
-                <th className="px-5 py-3">Quote ID & Customer</th>
-                <th className="px-4 py-3">Customer Tier</th>
-                <th className="px-4 py-3">Sales Rep</th>
-                <th className="px-4 py-3">Risk Assessment</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3 text-right">Total Net (INR)</th>
+                <th className="px-5 py-3">Quote Number</th>
+                <th className="px-4 py-3">Customer</th>
+                <th className="px-4 py-3 text-right">Amount (INR ₹)</th>
+                <th className="px-4 py-3">Stage</th>
+                <th className="px-4 py-3">Approval Status</th>
+                <th className="px-4 py-3">Created Date</th>
+                <th className="px-4 py-3">Sales Representative</th>
+                <th className="px-4 py-3">Risk Score</th>
                 <th className="px-5 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredQuotations.length === 0 ? (
+              {paginatedQuotations.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
-                    No quotations found matching the current filters.
+                  <td colSpan={9} className="px-6 py-12 text-center text-slate-400">
+                    No quotations found matching your search or filters.
                   </td>
                 </tr>
               ) : (
-                filteredQuotations.map((quote) => {
-                  const fin = calculateQuoteFinancials(quote.items, quote.customerTier);
-                  const isPending = quote.status === 'Pending Approval';
-                  const isDraft = quote.status === 'Draft';
-                  const isApproved = quote.status === 'Approved';
-                  const isConfirmed = quote.status === 'Confirmed';
+                paginatedQuotations.map((quote) => {
+                  const fin = calculateQuoteFinancials(quote.items, quote.customerTier, quote.orderDiscountPercent);
+                  const stage = quote.stage || quote.status || 'Draft';
+                  const cust = quote.customer || quote.customerName || 'Account';
+                  const date = quote.createdDate || quote.createdAt || '2026-09-01';
+                  const rep = quote.salesRep || 'Sales Rep';
+                  const risk = quote.riskScore !== undefined ? quote.riskScore : 30;
 
-                  const statusVariant = isConfirmed
-                    ? 'success'
-                    : isApproved
-                    ? 'brand'
-                    : isPending
-                    ? 'warning'
-                    : 'default';
+                  const stageVariant =
+                    stage === 'Confirmed'
+                      ? 'success'
+                      : stage === 'Approved'
+                      ? 'brand'
+                      : stage === 'Pending Approval'
+                      ? 'warning'
+                      : stage === 'Under Negotiation'
+                      ? 'purple'
+                      : 'default';
 
                   const riskVariant =
-                    quote.riskLevel === 'HIGH'
+                    risk >= 70
                       ? 'danger'
-                      : quote.riskLevel === 'MEDIUM'
+                      : risk >= 40
                       ? 'warning'
                       : 'success';
 
@@ -272,62 +385,90 @@ export function QuotationsList() {
                       onClick={() => navigate(`/quotations/${quote.id}`)}
                       className="hover:bg-slate-50/80 transition-colors group cursor-pointer"
                     >
-                      <td className="px-5 py-4">
-                        <div className="font-semibold text-slate-900 group-hover:text-brand-600 transition-colors">
-                          {quote.customerName}
-                        </div>
-                        <div className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-2">
-                          <span className="font-mono text-slate-500 font-semibold">{quote.id}</span>
-                          <span>•</span>
-                          <span>{quote.contactPerson}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-4">
-                        <Badge variant="default" size="sm">
-                          {quote.customerTier}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-4 font-medium text-slate-700">
-                        {quote.salesRep}
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className="flex flex-col items-start gap-1">
-                          <Badge variant={riskVariant} size="sm">
-                            {quote.riskLevel} RISK
-                          </Badge>
-                          {quote.riskLevel === 'HIGH' && (
-                            <span className="text-[10px] text-rose-600 font-medium">
-                              Discount breach flagged
-                            </span>
-                          )}
+                      {/* Quote Number */}
+                      <td className="px-5 py-3.5">
+                        <span className="font-mono font-bold text-slate-900 group-hover:text-brand-600 transition-colors">
+                          {quote.id}
+                        </span>
+                        <div className="text-[10px] text-slate-400 font-normal">
+                          {quote.customerTier || 'Enterprise'}
                         </div>
                       </td>
-                      <td className="px-4 py-4">
-                        <Badge variant={statusVariant} size="sm" dot>
-                          {quote.status}
-                        </Badge>
+
+                      {/* Customer */}
+                      <td className="px-4 py-3.5">
+                        <div className="font-semibold text-slate-900">{cust}</div>
+                        {quote.contactPerson && (
+                          <div className="text-[11px] text-slate-400 truncate max-w-[160px]">
+                            {quote.contactPerson}
+                          </div>
+                        )}
                       </td>
-                      <td className="px-4 py-4 text-right">
+
+                      {/* Amount */}
+                      <td className="px-4 py-3.5 text-right">
                         <div className="font-bold text-slate-900 text-sm">
                           ₹{Math.round(fin.totalAmount).toLocaleString('en-IN')}
                         </div>
-                        <div className="text-[10px] text-slate-400 mt-0.5">
+                        <div className="text-[10px] text-slate-400">
                           Margin: <span className="text-emerald-700 font-semibold">{fin.grossMargin}%</span>
                         </div>
                       </td>
-                      <td className="px-5 py-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/quotations/${quote.id}`);
-                            }}
-                          >
-                            Configure CPQ
-                          </Button>
+
+                      {/* Stage */}
+                      <td className="px-4 py-3.5">
+                        <Badge variant={stageVariant} size="sm" dot>
+                          {stage}
+                        </Badge>
+                      </td>
+
+                      {/* Approval Status */}
+                      <td className="px-4 py-3.5">
+                        <span className="text-xs text-slate-700 font-medium block">
+                          {quote.approvalStatus || (stage === 'Draft' ? 'Draft (Not Submitted)' : 'In Progress')}
+                        </span>
+                      </td>
+
+                      {/* Created Date */}
+                      <td className="px-4 py-3.5 text-slate-600 font-medium">
+                        <div className="flex items-center gap-1.5 text-[11px]">
+                          <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                          <span>{date}</span>
                         </div>
+                      </td>
+
+                      {/* Sales Representative */}
+                      <td className="px-4 py-3.5 text-slate-700 font-medium">
+                        <div className="flex items-center gap-1.5 text-[11px]">
+                          <User className="w-3.5 h-3.5 text-slate-400" />
+                          <span>{rep}</span>
+                        </div>
+                      </td>
+
+                      {/* Risk Score */}
+                      <td className="px-4 py-3.5">
+                        <div className="flex items-center gap-1.5">
+                          <Badge variant={riskVariant} size="sm">
+                            {risk}/100
+                          </Badge>
+                          {risk >= 70 && (
+                            <span className="text-[10px] text-rose-600 font-bold">High Risk</span>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Actions */}
+                      <td className="px-5 py-3.5 text-right">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/quotations/${quote.id}`);
+                          }}
+                        >
+                          Open CPQ
+                        </Button>
                       </td>
                     </tr>
                   );
@@ -336,6 +477,49 @@ export function QuotationsList() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Footer */}
+        <div className="px-5 py-3.5 border-t border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+          <div>
+            Showing{' '}
+            <span className="font-semibold text-slate-700">
+              {filteredAndSortedQuotations.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}
+            </span>{' '}
+            to{' '}
+            <span className="font-semibold text-slate-700">
+              {Math.min(currentPage * pageSize, filteredAndSortedQuotations.length)}
+            </span>{' '}
+            of{' '}
+            <span className="font-semibold text-slate-700">
+              {filteredAndSortedQuotations.length}
+            </span>{' '}
+            quotations
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <Button
+              variant="outline"
+              size="sm"
+              icon={ChevronLeft}
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            >
+              Previous
+            </Button>
+            <span className="px-2.5 py-1 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-md">
+              Page {currentPage} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              icon={ChevronRight}
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
       </Card>
 
       {/* New Quotation Modal */}
@@ -343,7 +527,7 @@ export function QuotationsList() {
         isOpen={isNewModalOpen}
         onClose={() => setIsNewModalOpen(false)}
         title="Create New Quotation (CPQ)"
-        description="Initialize customer proposal and configure primary solution line"
+        description="Initialize customer proposal and configure primary solution line in INR ₹"
         footer={
           <>
             <Button variant="secondary" onClick={() => setIsNewModalOpen(false)}>

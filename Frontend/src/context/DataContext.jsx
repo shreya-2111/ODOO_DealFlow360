@@ -3,12 +3,11 @@ import {
   INITIAL_QUOTATIONS,
   INITIAL_PRODUCTS,
   INITIAL_WAREHOUSES,
-  INITIAL_FULFILLMENT_ORDERS,
-  INITIAL_SUBSCRIPTIONS,
-  INITIAL_INVOICES,
-  DEAL_HEALTH_METRICS,
+  INITIAL_FULFILLMENT_SPLITS,
+  INITIAL_SUBSCRIPTIONS_BILLING,
+  DEAL_HEALTH_DATA,
   GOVERNANCE_RULES,
-  UPSELL_RECOMMENDATIONS
+  UPSELL_SUGGESTIONS
 } from '../data/mockData';
 
 const DataContext = createContext(null);
@@ -17,93 +16,106 @@ export function DataProvider({ children }) {
   const [quotations, setQuotations] = useState(INITIAL_QUOTATIONS);
   const [products, setProducts] = useState(INITIAL_PRODUCTS);
   const [warehouses, setWarehouses] = useState(INITIAL_WAREHOUSES);
-  const [fulfillmentOrders, setFulfillmentOrders] = useState(INITIAL_FULFILLMENT_ORDERS);
-  const [subscriptions, setSubscriptions] = useState(INITIAL_SUBSCRIPTIONS);
-  const [invoices, setInvoices] = useState(INITIAL_INVOICES);
-  const [dealHealth, setDealHealth] = useState(DEAL_HEALTH_METRICS);
+  const [fulfillmentSplits, setFulfillmentSplits] = useState(INITIAL_FULFILLMENT_SPLITS);
+  const [subscriptions, setSubscriptions] = useState(INITIAL_SUBSCRIPTIONS_BILLING);
+  const [dealHealth, setDealHealth] = useState(DEAL_HEALTH_DATA);
   const [governanceRules, setGovernanceRules] = useState(GOVERNANCE_RULES);
+  const [upsellSuggestions, setUpsellSuggestions] = useState(UPSELL_SUGGESTIONS);
 
-  // Helper calculation for quote totals & breaches
-  const calculateQuoteFinancials = (items = [], customerTier = 'Silver Tier') => {
+  // Financial & Margin & Risk Score Calculation engine
+  const calculateQuoteFinancials = (items = [], customerTier = 'Silver Tier', orderDiscountPercent = 0) => {
     let subtotal = 0;
     let totalCost = 0;
-    let totalDiscountAmount = 0;
-    let totalTax = 0;
+    let lineDiscountAmount = 0;
     let hasBreach = false;
     let breachDetails = [];
+    let riskPoints = 0;
 
     const tierLimit = governanceRules.tierCeilings[customerTier] || 10;
 
     items.forEach((item) => {
-      const lineTotalBeforeDiscount = (item.unitPrice || 0) * (item.quantity || 1);
-      const discount = item.discountPercent || 0;
-      const discountVal = (lineTotalBeforeDiscount * discount) / 100;
-      const lineNet = lineTotalBeforeDiscount - discountVal;
+      const lineSubtotal = (item.unitPrice || 0) * (item.quantity || 1);
+      const lineDiscPct = item.discountPercent || 0;
+      const lineDiscVal = (lineSubtotal * lineDiscPct) / 100;
+      const lineNet = lineSubtotal - lineDiscVal;
       const lineCost = (item.unitCost || 0) * (item.quantity || 1);
-      const lineTax = (lineNet * (item.taxRate || 0)) / 100;
 
-      subtotal += lineTotalBeforeDiscount;
-      totalDiscountAmount += discountVal;
+      subtotal += lineSubtotal;
+      lineDiscountAmount += lineDiscVal;
       totalCost += lineCost;
-      totalTax += lineTax;
 
-      // Check category ceiling breach
-      const categoryCeiling = governanceRules.categoryCeilings[item.category] || tierLimit;
-      if (discount > categoryCeiling) {
+      const categoryLimit = governanceRules.categoryCeilings[item.category] || tierLimit;
+      if (lineDiscPct > categoryLimit) {
         hasBreach = true;
-        const diff = (discount - categoryCeiling).toFixed(0);
-        breachDetails.push(`${item.category} (${item.productName}): ${discount}% discount (+${diff}% breach over ${categoryCeiling}% limit)`);
+        const diff = lineDiscPct - categoryLimit;
+        breachDetails.push(`${item.category} (${item.name}): ${lineDiscPct}% discount (+${diff}% breach over ${categoryLimit}% ceiling)`);
+        riskPoints += diff * 4;
       }
     });
 
-    const netAmount = subtotal - totalDiscountAmount;
+    // Order-level discount
+    const discountedAfterLines = subtotal - lineDiscountAmount;
+    const orderDiscountAmount = (discountedAfterLines * (orderDiscountPercent || 0)) / 100;
+    const netAmount = discountedAfterLines - orderDiscountAmount;
+    const totalDiscountAmount = lineDiscountAmount + orderDiscountAmount;
+
+    // GST 18%
+    const totalTax = netAmount * 0.18;
     const totalAmount = netAmount + totalTax;
-    const grossMargin = netAmount > 0 ? (((netAmount - totalCost) / netAmount) * 100).toFixed(1) : 0;
+
     const grossProfit = netAmount - totalCost;
+    const grossMargin = netAmount > 0 ? (((netAmount - totalCost) / netAmount) * 100).toFixed(1) : 0;
+
+    if (orderDiscountPercent > 5) riskPoints += 15;
+    if (totalAmount > 1000000) riskPoints += 20; // High value order > ₹10 Lakh
+    if (Number(grossMargin) < 25) riskPoints += 25;
+
+    const finalRiskScore = Math.min(100, Math.max(10, Math.round(riskPoints + 15)));
 
     return {
       subtotal,
+      lineDiscountAmount,
+      orderDiscountAmount,
       totalDiscountAmount,
       netAmount,
       totalTax,
       totalAmount,
       totalCost,
-      grossMargin: Number(grossMargin),
       grossProfit,
+      grossMargin: Number(grossMargin),
       hasBreach,
       breachDetails,
-      riskLevel: hasBreach ? 'HIGH' : totalAmount > 75000 ? 'MEDIUM' : 'LOW'
+      riskScore: finalRiskScore,
+      requiresFinanceApproval: hasBreach || totalAmount > 1000000 || finalRiskScore >= 70,
+      requiresManagerApproval: hasBreach || totalDiscountAmount > 0 || finalRiskScore >= 40
     };
   };
 
-  // Update Quotation
+  // Add / Update Quotation
+  const addQuotation = (newQuote) => {
+    const fin = calculateQuoteFinancials(newQuote.items, newQuote.customerTier, newQuote.orderDiscountPercent);
+    const quoteWithStats = {
+      ...newQuote,
+      riskScore: fin.riskScore
+    };
+    setQuotations((prev) => [quoteWithStats, ...prev]);
+    return quoteWithStats;
+  };
+
   const updateQuotation = (id, updatedFields) => {
     setQuotations((prev) =>
       prev.map((q) => {
         if (q.id === id) {
           const merged = { ...q, ...updatedFields };
-          const fin = calculateQuoteFinancials(merged.items, merged.customerTier);
+          const fin = calculateQuoteFinancials(merged.items, merged.customerTier, merged.orderDiscountPercent);
           return {
             ...merged,
-            riskLevel: fin.riskLevel,
-            discountBreachSummary: fin.breachDetails.join(' | ') || 'Within standard tier limits'
+            riskScore: fin.riskScore
           };
         }
         return q;
       })
     );
-  };
-
-  // Add new quotation
-  const addQuotation = (newQuote) => {
-    const fin = calculateQuoteFinancials(newQuote.items, newQuote.customerTier);
-    const quoteWithStats = {
-      ...newQuote,
-      riskLevel: fin.riskLevel,
-      discountBreachSummary: fin.breachDetails.join(' | ') || 'Within standard tier limits'
-    };
-    setQuotations((prev) => [quoteWithStats, ...prev]);
-    return quoteWithStats;
   };
 
   // Submit quotation for approval
@@ -111,26 +123,28 @@ export function DataProvider({ children }) {
     setQuotations((prev) =>
       prev.map((q) => {
         if (q.id === quoteId) {
-          const fin = calculateQuoteFinancials(q.items, q.customerTier);
-          const newSteps = q.approvalSteps.map((step, idx) => {
-            if (idx === 0) return { ...step, status: 'approved', timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16) };
-            if (idx === 1) return { ...step, status: 'pending' };
-            return step;
-          });
-          const newLogs = [
-            {
-              id: `log-${Date.now()}`,
-              timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
-              actor: repName,
-              action: `Submitted quotation for formal approval (${fin.riskLevel} Risk)`
-            },
-            ...q.auditLogs
+          const fin = calculateQuoteFinancials(q.items, q.customerTier, q.orderDiscountPercent);
+
+          const steps = [
+            { role: 'Sales Rep Submission', reviewer: repName, status: 'approved', timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16), comments: 'Quotation submitted for review.' },
+            { role: 'Sales Manager Approval', reviewer: 'Priya Patel', status: 'pending', timestamp: null, comments: 'Pending manager evaluation.' }
           ];
+
+          if (fin.requiresFinanceApproval) {
+            steps.push({ role: 'Finance / Operations Controller', reviewer: 'Rajesh Verma', status: 'upcoming', timestamp: null, comments: 'Required for high-value / discount breach.' });
+          }
+
+          const newTimeline = [
+            { sender: `${repName} (Sales Rep)`, action: `Submitted quotation for formal approval (Risk Score: ${fin.riskScore})`, timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16), note: fin.hasBreach ? 'Concession breach flagged.' : 'Standard review routing.' },
+            ...(q.timeline || [])
+          ];
+
           return {
             ...q,
-            status: 'Pending Approval',
-            approvalSteps: newSteps,
-            auditLogs: newLogs
+            stage: 'Pending Approval',
+            approvalStatus: 'Pending Manager Approval',
+            approvalSteps: steps,
+            timeline: newTimeline
           };
         }
         return q;
@@ -138,51 +152,45 @@ export function DataProvider({ children }) {
     );
   };
 
-  // Approve Quotation Step
-  const approveQuoteStep = (quoteId, actorName, roleTitle, comments = '') => {
+  // Approval step action
+  const approveQuoteStep = (quoteId, reviewerName, roleTitle, comments = '') => {
     setQuotations((prev) =>
       prev.map((q) => {
         if (q.id === quoteId) {
-          let updatedStatus = q.status;
-          const newSteps = [...q.approvalSteps];
-          const pendingIdx = newSteps.findIndex((s) => s.status === 'pending');
+          const steps = [...(q.approvalSteps || [])];
+          const pendingIdx = steps.findIndex((s) => s.status === 'pending');
+          let nextStage = q.stage;
+          let nextStatus = q.approvalStatus;
 
           if (pendingIdx !== -1) {
-            newSteps[pendingIdx] = {
-              ...newSteps[pendingIdx],
+            steps[pendingIdx] = {
+              ...steps[pendingIdx],
               status: 'approved',
-              user: actorName,
-              timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16)
+              reviewer: reviewerName,
+              timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
+              comments: comments || 'Approved terms.'
             };
 
-            if (pendingIdx + 1 < newSteps.length) {
-              if (pendingIdx + 1 === newSteps.length - 1) {
-                // Next is customer confirmation
-                newSteps[pendingIdx + 1].status = 'pending';
-                updatedStatus = 'Approved';
-              } else {
-                newSteps[pendingIdx + 1].status = 'pending';
-              }
+            if (pendingIdx + 1 < steps.length) {
+              steps[pendingIdx + 1].status = 'pending';
+              nextStatus = `Pending ${steps[pendingIdx + 1].role}`;
             } else {
-              updatedStatus = 'Confirmed';
+              nextStage = 'Approved';
+              nextStatus = 'Approved by Management';
             }
           }
 
-          const newLogs = [
-            {
-              id: `log-${Date.now()}`,
-              timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
-              actor: `${actorName} (${roleTitle})`,
-              action: `Approved quotation. ${comments ? `Note: "${comments}"` : ''}`
-            },
-            ...q.auditLogs
+          const newTimeline = [
+            { sender: `${reviewerName} (${roleTitle})`, action: 'Approved quotation step', timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16), note: comments || 'Approved within authority threshold.' },
+            ...(q.timeline || [])
           ];
 
           return {
             ...q,
-            status: updatedStatus,
-            approvalSteps: newSteps,
-            auditLogs: newLogs
+            stage: nextStage,
+            approvalStatus: nextStatus,
+            approvalSteps: steps,
+            timeline: newTimeline
           };
         }
         return q;
@@ -190,29 +198,20 @@ export function DataProvider({ children }) {
     );
   };
 
-  // Return Quotation for Revision
-  const returnQuoteForRevision = (quoteId, actorName, roleTitle, revisionReason) => {
+  // Reject / Return Quote
+  const rejectQuote = (quoteId, reviewerName, roleTitle, reason) => {
     setQuotations((prev) =>
       prev.map((q) => {
         if (q.id === quoteId) {
-          const newSteps = q.approvalSteps.map((step, idx) => {
-            if (idx === 0) return { ...step, status: 'pending' };
-            return { ...step, status: 'upcoming' };
-          });
-          const newLogs = [
-            {
-              id: `log-${Date.now()}`,
-              timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
-              actor: `${actorName} (${roleTitle})`,
-              action: `Returned quotation for revision. Reason: "${revisionReason}"`
-            },
-            ...q.auditLogs
+          const newTimeline = [
+            { sender: `${reviewerName} (${roleTitle})`, action: `Rejected quotation. Reason: "${reason}"`, timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16), note: 'Quotation closed.' },
+            ...(q.timeline || [])
           ];
           return {
             ...q,
-            status: 'Draft',
-            approvalSteps: newSteps,
-            auditLogs: newLogs
+            stage: 'Draft',
+            approvalStatus: 'Rejected by Reviewer',
+            timeline: newTimeline
           };
         }
         return q;
@@ -220,38 +219,72 @@ export function DataProvider({ children }) {
     );
   };
 
-  // Customer portal accept / counter offer
-  const customerSubmitCounterOffer = (quoteId, counterDiscount, customerNote) => {
+  const returnQuoteForRevision = (quoteId, reviewerName, roleTitle, reason) => {
     setQuotations((prev) =>
       prev.map((q) => {
         if (q.id === quoteId) {
-          // Adjust first item discount
-          const updatedItems = q.items.map((it, idx) => (idx === 0 ? { ...it, discountPercent: Number(counterDiscount) } : it));
-          const fin = calculateQuoteFinancials(updatedItems, q.customerTier);
-          const newLogs = [
-            {
-              id: `log-${Date.now()}`,
-              timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
-              actor: `${q.contactPerson} (Customer)`,
-              action: `Requested counter discount (${counterDiscount}%). Note: "${customerNote}". Re-routed to VP Approval.`
-            },
-            ...q.auditLogs
-          ];
-          const newSteps = [
-            { stepNumber: 1, role: 'Customer Counter-Offer Submitted', user: q.contactPerson, status: 'approved', timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16) },
-            { stepNumber: 2, role: 'Sales VP Regional Approval', user: 'Sarah Chen', status: 'pending', timestamp: null },
-            { stepNumber: 3, role: 'Finance Controller', user: 'Marcus Vance', status: 'upcoming', timestamp: null },
-            { stepNumber: 4, role: 'Customer Final Signing', user: q.contactPerson, status: 'upcoming', timestamp: null }
+          const newTimeline = [
+            { sender: `${reviewerName} (${roleTitle})`, action: `Returned for revision: "${reason}"`, timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16), note: 'Rep must revise discount/pricing.' },
+            ...(q.timeline || [])
           ];
           return {
             ...q,
-            status: 'Pending Approval',
+            stage: 'Draft',
+            approvalStatus: 'Returned for Revision',
+            timeline: newTimeline
+          };
+        }
+        return q;
+      })
+    );
+  };
+
+  // Customer Portal Interactions & Re-Approval Trigger Logic
+  const customerAskLineQuestion = (quoteId, itemId, question) => {
+    setQuotations((prev) =>
+      prev.map((q) => {
+        if (q.id === quoteId) {
+          const newTimeline = [
+            { sender: `${q.customer} (Customer)`, action: `Asked question on item: "${question}"`, timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16), note: 'Sales rep will follow up.' },
+            ...(q.timeline || [])
+          ];
+          return { ...q, timeline: newTimeline };
+        }
+        return q;
+      })
+    );
+  };
+
+  const customerSubmitNegotiation = (quoteId, requestedDiscount, comment) => {
+    setQuotations((prev) =>
+      prev.map((q) => {
+        if (q.id === quoteId) {
+          // Adjust first hardware line discount to match counter
+          const updatedItems = q.items.map((it, idx) => (idx === 0 ? { ...it, discountPercent: Number(requestedDiscount) } : it));
+          const fin = calculateQuoteFinancials(updatedItems, q.customerTier, q.orderDiscountPercent);
+
+          const newTimeline = [
+            { sender: `${q.customer} (Customer)`, action: `Submitted counter negotiation (${requestedDiscount}%). Note: "${comment}"`, timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16), note: 'Re-approval triggered.' },
+            ...(q.timeline || [])
+          ];
+
+          // If counter exceeds threshold, automatically routes back to Sales Manager and Finance
+          const reApprovalSteps = [
+            { role: 'Customer Counter Submitted', reviewer: q.customer, status: 'approved', timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16), comments: comment },
+            { role: 'Sales Manager Approval', reviewer: 'Priya Patel', status: 'pending', timestamp: null, comments: 'Evaluating counter terms.' }
+          ];
+
+          if (fin.requiresFinanceApproval) {
+            reApprovalSteps.push({ role: 'Finance / Operations Controller', reviewer: 'Rajesh Verma', status: 'upcoming', timestamp: null, comments: 'Required for high counter concession.' });
+          }
+
+          return {
+            ...q,
+            stage: 'Under Negotiation',
+            approvalStatus: 'Customer Counter Submitted',
             items: updatedItems,
-            riskLevel: 'HIGH',
-            customerNotes: customerNote,
-            approvalSteps: newSteps,
-            auditLogs: newLogs,
-            discountBreachSummary: fin.breachDetails.join(' | ') || `Customer counter requested: ${counterDiscount}%`
+            approvalSteps: reApprovalSteps,
+            timeline: newTimeline
           };
         }
         return q;
@@ -259,25 +292,19 @@ export function DataProvider({ children }) {
     );
   };
 
-  const customerSignAndAcceptQuote = (quoteId, signature) => {
+  const customerConfirmQuotation = (quoteId, signerName) => {
     setQuotations((prev) =>
       prev.map((q) => {
         if (q.id === quoteId) {
-          const newSteps = q.approvalSteps.map((s) => ({ ...s, status: 'approved', timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16) }));
-          const newLogs = [
-            {
-              id: `log-${Date.now()}`,
-              timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
-              actor: `${q.contactPerson} (Customer)`,
-              action: `Digitally signed and accepted contract (Signed as: ${signature})`
-            },
-            ...q.auditLogs
+          const newTimeline = [
+            { sender: `${signerName} (Customer)`, action: 'Confirmed final quotation terms and digitally signed agreement', timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16), note: 'Directly routing to Fulfillment.' },
+            ...(q.timeline || [])
           ];
           return {
             ...q,
-            status: 'Confirmed',
-            approvalSteps: newSteps,
-            auditLogs: newLogs
+            stage: 'Confirmed',
+            approvalStatus: 'Signed by Customer',
+            timeline: newTimeline
           };
         }
         return q;
@@ -285,74 +312,94 @@ export function DataProvider({ children }) {
     );
   };
 
-  // Allocate stock in fulfillment order
-  const allocateStock = (orderId, lineId, warehouseId, qtyToAllocate) => {
-    setFulfillmentOrders((prev) =>
-      prev.map((order) => {
-        if (order.id === orderId) {
-          const updatedLines = order.lines.map((line) => {
-            if (line.lineId === lineId) {
-              const wh = warehouses.find((w) => w.id === warehouseId);
-              const whName = wh ? wh.name : warehouseId;
-              const existingAlloc = line.allocations.find((a) => a.warehouseId === warehouseId);
-              let newAllocations = [];
-              if (existingAlloc) {
-                newAllocations = line.allocations.map((a) => (a.warehouseId === warehouseId ? { ...a, qty: a.qty + qtyToAllocate } : a));
-              } else {
-                newAllocations = [...line.allocations, { warehouseId, warehouseName: whName, qty: qtyToAllocate, status: 'Allocated' }];
-              }
-              const totalAllocated = newAllocations.reduce((sum, a) => sum + a.qty, 0);
-              const backorderedQty = Math.max(0, line.requiredQty - totalAllocated);
-              return {
-                ...line,
-                allocations: newAllocations,
-                backorderedQty
-              };
+  // Fulfillment Split actions
+  const acceptWarehouseSplit = (orderId) => {
+    setFulfillmentSplits((prev) =>
+      prev.map((f) => (f.orderId === orderId ? { ...f, status: 'Ready to Ship' } : f))
+    );
+  };
+
+  const overrideWarehouseSplit = (orderId, lineId, warehouseName, newQty) => {
+    setFulfillmentSplits((prev) =>
+      prev.map((f) => {
+        if (f.orderId === orderId) {
+          const updatedLines = f.lines.map((l) => {
+            if (l.lineId === lineId) {
+              const updatedSplits = l.splits.map((s) => (s.warehouse === warehouseName ? { ...s, qty: Number(newQty) } : s));
+              return { ...l, splits: updatedSplits };
             }
-            return line;
+            return l;
           });
-
-          // Check overall order status
-          const allLinesFilled = updatedLines.every((l) => l.backorderedQty === 0);
-          return {
-            ...order,
-            lines: updatedLines,
-            status: allLinesFilled ? 'Ready to Ship' : 'Partially Allocated'
-          };
+          return { ...f, lines: updatedLines };
         }
-        return order;
+        return f;
       })
     );
   };
 
-  // Dispatch fulfillment order
-  const dispatchOrder = (orderId, carrier, tracking) => {
-    setFulfillmentOrders((prev) =>
-      prev.map((o) => (o.id === orderId ? { ...o, status: 'Dispatched', shippingCarrier: carrier, trackingNumber: tracking } : o))
-    );
-  };
-
-  // Invoicing stage progression
-  const updateInvoiceReconciliation = (invoiceId, stage) => {
-    setInvoices((prev) =>
-      prev.map((inv) => {
-        if (inv.id === invoiceId) {
-          const isPaid = stage === 'Paid';
-          return {
-            ...inv,
-            reconciliationStage: stage,
-            status: isPaid ? 'Paid' : stage === 'Invoiced' ? 'Unpaid' : 'Draft',
-            paidAmount: isPaid ? inv.amount : inv.paidAmount
-          };
+  const consolidateBackorder = (orderId, lineId, warehouseName) => {
+    setFulfillmentSplits((prev) =>
+      prev.map((f) => {
+        if (f.orderId === orderId) {
+          const updatedLines = f.lines.map((l) => {
+            if (l.lineId === lineId) {
+              const backordered = l.backorderedQty;
+              const existing = l.splits.find((s) => s.warehouse === warehouseName);
+              let newSplits = [];
+              if (existing) {
+                newSplits = l.splits.map((s) => (s.warehouse === warehouseName ? { ...s, qty: s.qty + backordered } : s));
+              } else {
+                newSplits = [...l.splits, { warehouse: warehouseName, qty: backordered, shipmentCount: 1, cost: 800 }];
+              }
+              return { ...l, splits: newSplits, backorderedQty: 0 };
+            }
+            return l;
+          });
+          return { ...f, lines: updatedLines, status: 'Ready to Ship' };
         }
-        return inv;
+        return f;
       })
     );
   };
 
-  // Deal Health actions
-  const resolveAnomaly = (id, resolutionMessage) => {
-    setDealHealth((prev) => prev.filter((d) => d.id !== id));
+  // Subscriptions & Proration calculations
+  const modifySubscriptionQuantity = (subId, newQuantity) => {
+    setSubscriptions((prev) =>
+      prev.map((s) => {
+        if (s.id === subId) {
+          const prevPrice = s.recurringPrice;
+          const unitRate = prevPrice / (s.recurringItems[0]?.quantity || 1);
+          const newPrice = unitRate * newQuantity;
+          const prorationAdjustment = Math.round((newPrice - prevPrice) * 0.5); // 15 days remaining in month
+
+          return {
+            ...s,
+            recurringPrice: newPrice,
+            recurringItems: s.recurringItems.map((it) => ({ ...it, quantity: newQuantity, recurringPrice: newPrice }))
+          };
+        }
+        return s;
+      })
+    );
+  };
+
+  const cancelSubscription = (subId) => {
+    setSubscriptions((prev) =>
+      prev.map((s) => (s.id === subId ? { ...s, status: 'Cancelled' } : s))
+    );
+  };
+
+  // Admin CRUD
+  const adminAddProduct = (newProduct) => {
+    setProducts((prev) => [newProduct, ...prev]);
+  };
+
+  const adminUpdateProduct = (id, updates) => {
+    setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, ...updates } : p)));
+  };
+
+  const adminSaveGovernance = (rules) => {
+    setGovernanceRules(rules);
   };
 
   return (
@@ -361,25 +408,30 @@ export function DataProvider({ children }) {
         quotations,
         products,
         warehouses,
-        fulfillmentOrders,
+        fulfillmentSplits,
         subscriptions,
-        invoices,
         dealHealth,
         governanceRules,
-        upsellRecommendations: UPSELL_RECOMMENDATIONS,
+        upsellSuggestions,
         calculateQuoteFinancials,
-        updateQuotation,
         addQuotation,
+        updateQuotation,
         submitQuoteForApproval,
         approveQuoteStep,
+        rejectQuote,
         returnQuoteForRevision,
-        customerSubmitCounterOffer,
-        customerSignAndAcceptQuote,
-        allocateStock,
-        dispatchOrder,
-        updateInvoiceReconciliation,
-        resolveAnomaly,
-        setGovernanceRules,
+        customerAskLineQuestion,
+        customerSubmitNegotiation,
+        customerConfirmQuotation,
+        acceptWarehouseSplit,
+        overrideWarehouseSplit,
+        consolidateBackorder,
+        modifySubscriptionQuantity,
+        cancelSubscription,
+        adminAddProduct,
+        adminUpdateProduct,
+        adminSaveGovernance,
+        setQuotations,
         setProducts
       }}
     >

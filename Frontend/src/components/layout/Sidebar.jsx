@@ -3,63 +3,99 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   FileSpreadsheet,
-  CheckSquare,
+  Kanban,
+  Users,
   Truck,
   Repeat,
-  Globe,
-  Receipt,
   Activity,
   BarChart3,
-  Package,
   Sliders,
-  ShieldCheck,
-  Building2
+  Globe,
+  CheckSquare,
+  Package,
+  Layers,
+  ShieldCheck
 } from 'lucide-react';
-import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
+import { useData } from '../../context/DataContext';
 
 export function Sidebar({ isOpen, onClose }) {
   const location = useLocation();
-  const { quotations, fulfillmentOrders, subscriptions, dealHealth } = useData();
-  const { isCustomer } = useAuth();
+  const { currentUser, isSalesRep, isSalesManager, isFinanceOps, isCustomer, isAdmin } = useAuth();
+  const { quotations, fulfillmentSplits, subscriptions, dealHealth } = useData();
 
-  const pendingApprovalsCount = quotations.filter((q) => q.status === 'Pending Approval').length;
-  const pendingFulfillmentCount = fulfillmentOrders.filter((f) => f.status === 'Pending Allocation' || f.status === 'Partially Allocated').length;
-  const atRiskDealsCount = dealHealth.length;
+  const pendingApprovalsCount = quotations.filter((q) => q.stage === 'Pending Approval').length;
+  const activeFulfillmentCount = fulfillmentSplits.filter((f) => f.status !== 'Ready to Ship').length;
+  const atRiskCount = dealHealth.kpis.atRiskDeals;
 
-  const navSections = [
-    {
-      title: 'Sales & CPQ',
-      items: [
-        { name: 'Sales Command', path: '/dashboard', icon: LayoutDashboard },
-        { name: 'Quotations (CPQ)', path: '/quotations', icon: FileSpreadsheet, badge: quotations.length },
-        { name: 'Approvals Queue', path: '/approvals', icon: CheckSquare, badge: pendingApprovalsCount, badgeColor: 'bg-amber-100 text-amber-800' },
-      ],
-    },
-    {
-      title: 'Operations & Billing',
-      items: [
-        { name: 'Fulfillment & Stock', path: '/fulfillment', icon: Truck, badge: pendingFulfillmentCount, badgeColor: 'bg-blue-100 text-blue-800' },
-        { name: 'Subscriptions', path: '/subscriptions', icon: Repeat, badge: subscriptions.length },
-        { name: 'Invoices Ledger', path: '/invoices', icon: Receipt },
-      ],
-    },
-    {
-      title: 'Customer & Health',
-      items: [
-        { name: 'Customer Portal', path: '/portal', icon: Globe, highlight: true },
-        { name: 'Deal Health & Risk', path: '/health', icon: Activity, badge: atRiskDealsCount, badgeColor: 'bg-rose-100 text-rose-800' },
-        { name: 'Executive Reports', path: '/reports', icon: BarChart3 },
-      ],
-    },
-    {
-      title: 'Catalog & Governance',
-      items: [
-        { name: 'Product Catalog', path: '/products', icon: Package },
-        { name: 'Governance Rules', path: '/governance', icon: Sliders },
-      ],
-    },
-  ];
+  // Build navigation dynamically based on logged in role
+  const getNavItems = () => {
+    if (isCustomer) {
+      return [
+        {
+          title: 'Customer Portal',
+          items: [
+            { name: 'My Quotations & Orders', path: '/portal', icon: Globe, highlight: true }
+          ]
+        }
+      ];
+    }
+
+    const sections = [];
+
+    // Sales & CPQ
+    const salesItems = [
+      { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+      { name: 'Quotations', path: '/quotations', icon: FileSpreadsheet, badge: quotations.length },
+      { name: 'Sales Pipeline', path: '/pipeline', icon: Kanban }
+    ];
+
+    if (isSalesManager || isFinanceOps || isAdmin) {
+      salesItems.push({
+        name: 'Approvals Queue',
+        path: '/approvals',
+        icon: CheckSquare,
+        badge: pendingApprovalsCount,
+        badgeColor: 'bg-amber-100 text-amber-800'
+      });
+    }
+
+    sections.push({ title: 'Sales & Pipeline', items: salesItems });
+
+    // Operations & Revenue
+    const opsItems = [];
+    if (isFinanceOps || isSalesManager || isAdmin) {
+      opsItems.push({
+        name: 'Fulfillment / Splits',
+        path: '/fulfillment',
+        icon: Truck,
+        badge: activeFulfillmentCount,
+        badgeColor: 'bg-blue-100 text-blue-800'
+      });
+    }
+    opsItems.push({ name: 'Subscriptions & Billing', path: '/subscriptions', icon: Repeat, badge: subscriptions.length });
+
+    sections.push({ title: 'Operations & Billing', items: opsItems });
+
+    // Intelligence & Governance
+    const intelItems = [
+      { name: 'Deal Health', path: '/health', icon: Activity, badge: atRiskCount, badgeColor: 'bg-rose-100 text-rose-800' },
+      { name: 'Analytics Reports', path: '/reports', icon: BarChart3 }
+    ];
+
+    if (isAdmin || isSalesManager) {
+      intelItems.push({ name: 'Admin Settings', path: '/settings', icon: Sliders });
+    }
+
+    // Quick Portal Preview
+    intelItems.push({ name: 'Customer Portal View', path: '/portal', icon: Globe, highlight: true });
+
+    sections.push({ title: 'Intelligence & Admin', items: intelItems });
+
+    return sections;
+  };
+
+  const navSections = getNavItems();
 
   return (
     <>
@@ -83,7 +119,7 @@ export function Sidebar({ isOpen, onClose }) {
               360
             </div>
             <div>
-              <div className="font-bold text-slate-900 text-base leading-none tracking-tight flex items-center gap-1.5">
+              <div className="font-bold text-slate-900 text-base leading-none tracking-tight flex items-center gap-1">
                 DealFlow<span className="text-brand-600">360</span>
               </div>
               <span className="text-[10px] text-slate-400 font-medium tracking-wide uppercase mt-0.5 block">
@@ -94,10 +130,10 @@ export function Sidebar({ isOpen, onClose }) {
         </div>
 
         {/* Navigation List */}
-        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
+        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
           {navSections.map((section, idx) => (
             <div key={idx}>
-              <div className="px-3 mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              <div className="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                 {section.title}
               </div>
               <nav className="space-y-0.5">
@@ -114,7 +150,7 @@ export function Sidebar({ isOpen, onClose }) {
                         isActive
                           ? 'bg-brand-50 text-brand-700 font-semibold border-l-3 border-brand-600'
                           : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                      } ${item.highlight && !isActive ? 'text-indigo-600 bg-indigo-50/50 hover:bg-indigo-50' : ''}`}
+                      } ${item.highlight && !isActive ? 'text-indigo-600 bg-indigo-50/40 hover:bg-indigo-50' : ''}`}
                     >
                       <div className="flex items-center gap-2.5">
                         <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-brand-600' : 'text-slate-400'}`} />
@@ -137,17 +173,17 @@ export function Sidebar({ isOpen, onClose }) {
           ))}
         </div>
 
-        {/* Footer info & active engine status */}
+        {/* Active Role Indicator in Sidebar Footer */}
         <div className="p-3.5 border-t border-slate-100 bg-slate-50/70">
           <div className="flex items-center justify-between text-[11px] text-slate-500 mb-1">
-            <span className="flex items-center gap-1.5 font-medium">
+            <span className="flex items-center gap-1.5 font-semibold text-slate-800">
               <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
-              Rule Engine Active
+              {currentUser.role.split('/')[0]}
             </span>
-            <span className="font-semibold text-slate-700">v2.4.0</span>
+            <span className="text-[10px] text-brand-700 font-bold">INR (₹)</span>
           </div>
-          <div className="text-[10px] text-slate-400">
-            Multi-Warehouse CPQ & Subscriptions
+          <div className="text-[10px] text-slate-400 truncate">
+            {currentUser.name} • {currentUser.team}
           </div>
         </div>
       </aside>

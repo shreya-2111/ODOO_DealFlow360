@@ -14,12 +14,15 @@ import {
   Building,
   CheckCircle2,
   AlertTriangle,
-  PackageCheck,
   Send,
-  Plus,
   MapPin,
   Calendar,
-  Layers
+  Layers,
+  Edit3,
+  Check,
+  RotateCcw,
+  Sparkles,
+  Package
 } from 'lucide-react';
 
 export function FulfillmentDetail() {
@@ -31,18 +34,25 @@ export function FulfillmentDetail() {
 
   const order = fulfillmentOrders.find((o) => o.id === id);
 
-  const [isAllocateModalOpen, setIsAllocateModalOpen] = useState(false);
+  // Warehouse Split table state (Requirement 13)
+  const [isManualOverride, setIsManualOverride] = useState(false);
+  const [splitRows, setSplitRows] = useState([
+    { warehouseId: 'WH-AHMEDABAD', warehouse: 'Ahmedabad Warehouse', quantity: 3, shipments: 1, estimatedCost: 1350 },
+    { warehouseId: 'WH-MUMBAI', warehouse: 'Mumbai Warehouse', quantity: 2, shipments: 1, estimatedCost: 700 },
+    { warehouseId: 'WH-DELHI', warehouse: 'Delhi Warehouse', quantity: 0, shipments: 0, estimatedCost: 0 },
+    { warehouseId: 'WH-BLR', warehouse: 'Bengaluru Hub', quantity: 0, shipments: 0, estimatedCost: 0 }
+  ]);
+  const [hasNewStockArrived, setHasNewStockArrived] = useState(false);
+
   const [isDispatchModalOpen, setIsDispatchModalOpen] = useState(false);
-  const [selectedLineId, setSelectedLineId] = useState(order?.lines[0]?.lineId || '');
-  const [selectedWarehouseId, setSelectedWarehouseId] = useState('WH-EAST');
-  const [allocQty, setAllocQty] = useState(2);
-  const [carrier, setCarrier] = useState('FedEx Custom Critical Logistics');
-  const [tracking, setTracking] = useState('FXC-882901244');
+  const [carrier, setCarrier] = useState('BlueDart Express Logistics');
+  const [tracking, setTracking] = useState('BD-882901244IN');
 
   if (!order) {
     return (
       <div className="p-12 text-center">
         <h2 className="text-lg font-bold text-slate-900">Fulfillment Order Not Found</h2>
+        <p className="text-xs text-slate-500 mt-1">Order {id} could not be located.</p>
         <Button variant="secondary" size="sm" className="mt-4" onClick={() => navigate('/fulfillment')}>
           Back to Fulfillment
         </Button>
@@ -50,21 +60,55 @@ export function FulfillmentDetail() {
     );
   }
 
-  const isReady = order.status === 'Ready to Ship';
   const isDispatched = order.status === 'Dispatched';
+  const totalAllocated = splitRows.reduce((sum, r) => sum + Number(r.quantity || 0), 0);
+  const totalSplitCost = splitRows.reduce((sum, r) => sum + Number(r.estimatedCost || 0), 0);
 
-  const handleAllocate = (e) => {
-    e.preventDefault();
-    allocateStock(order.id, selectedLineId, selectedWarehouseId, Number(allocQty));
-    setIsAllocateModalOpen(false);
-    addToast(`Allocated ${allocQty} units from warehouse! Backorder reconciled.`, 'success');
+  const handleAcceptSuggestedSplit = () => {
+    setIsManualOverride(false);
+    setSplitRows([
+      { warehouseId: 'WH-AHMEDABAD', warehouse: 'Ahmedabad Warehouse', quantity: 3, shipments: 1, estimatedCost: 1350 },
+      { warehouseId: 'WH-MUMBAI', warehouse: 'Mumbai Warehouse', quantity: 2, shipments: 1, estimatedCost: 700 },
+      { warehouseId: 'WH-DELHI', warehouse: 'Delhi Warehouse', quantity: 0, shipments: 0, estimatedCost: 0 },
+      { warehouseId: 'WH-BLR', warehouse: 'Bengaluru Hub', quantity: 0, shipments: 0, estimatedCost: 0 }
+    ]);
+    addToast('Optimal regional warehouse split accepted! Transport costs minimized.', 'success');
+  };
+
+  const handleSplitQuantityChange = (warehouseId, newQty) => {
+    const qty = Math.max(0, Number(newQty));
+    setSplitRows((prev) =>
+      prev.map((r) => {
+        if (r.warehouseId === warehouseId) {
+          const costPerUnit = r.warehouseId === 'WH-AHMEDABAD' ? 450 : r.warehouseId === 'WH-MUMBAI' ? 350 : 500;
+          return {
+            ...r,
+            quantity: qty,
+            shipments: qty > 0 ? 1 : 0,
+            estimatedCost: qty * costPerUnit
+          };
+        }
+        return r;
+      })
+    );
+  };
+
+  const handleConsolidateBackorder = () => {
+    setSplitRows([
+      { warehouseId: 'WH-AHMEDABAD', warehouse: 'Ahmedabad Warehouse', quantity: 5, shipments: 1, estimatedCost: 2250 },
+      { warehouseId: 'WH-MUMBAI', warehouse: 'Mumbai Warehouse', quantity: 0, shipments: 0, estimatedCost: 0 },
+      { warehouseId: 'WH-DELHI', warehouse: 'Delhi Warehouse', quantity: 0, shipments: 0, estimatedCost: 0 },
+      { warehouseId: 'WH-BLR', warehouse: 'Bengaluru Hub', quantity: 0, shipments: 0, estimatedCost: 0 }
+    ]);
+    setHasNewStockArrived(false);
+    addToast('Backorder consolidated into single shipment from Ahmedabad Warehouse! Saved ₹700 in freight.', 'success');
   };
 
   const handleDispatch = (e) => {
     e.preventDefault();
     dispatchOrder(order.id, carrier, tracking);
     setIsDispatchModalOpen(false);
-    addToast(`Shipment dispatched! Tracking #${tracking} assigned. Invoicing unlocked.`, 'success');
+    addToast(`Shipment dispatched! Tracking #${tracking} generated. Reconciled in Invoicing.`, 'success');
   };
 
   return (
@@ -84,13 +128,7 @@ export function FulfillmentDetail() {
             <div className="flex items-center gap-2.5">
               <h1 className="text-xl font-bold text-slate-900 font-mono">{order.id}</h1>
               <Badge
-                variant={
-                  isDispatched
-                    ? 'success'
-                    : isReady
-                    ? 'brand'
-                    : 'warning'
-                }
+                variant={isDispatched ? 'success' : order.status === 'Ready to Ship' ? 'brand' : 'warning'}
                 size="sm"
                 dot
               >
@@ -98,39 +136,50 @@ export function FulfillmentDetail() {
               </Badge>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              Customer: <strong className="text-slate-800">{order.customerName}</strong> • Origin Quote: {order.quoteId}
+              Customer: <strong className="text-slate-800">{order.customerName}</strong> • Origin Quotation: {order.quoteId}
             </p>
           </div>
         </div>
 
-        {/* Action Buttons */}
+        {/* Action Controls */}
         <div className="flex items-center gap-2">
           {!isDispatched && (
-            <>
-              <Button
-                variant="secondary"
-                size="md"
-                icon={Plus}
-                onClick={() => {
-                  setSelectedLineId(order.lines[0]?.lineId);
-                  setIsAllocateModalOpen(true);
-                }}
-              >
-                Split Allocate Stock
-              </Button>
-              <Button
-                variant="primary"
-                size="md"
-                icon={Send}
-                disabled={order.status === 'Pending Allocation'}
-                onClick={() => setIsDispatchModalOpen(true)}
-              >
-                Confirm Dispatch & Tracking
-              </Button>
-            </>
+            <Button
+              variant="primary"
+              size="md"
+              icon={Send}
+              onClick={() => setIsDispatchModalOpen(true)}
+            >
+              Confirm Dispatch & Tracking
+            </Button>
           )}
         </div>
       </div>
+
+      {/* Fulfillment Status & Delivery Timeline Indicator */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between text-xs mb-3">
+            <span className="font-bold text-slate-700">Fulfillment Lifecycle Progress</span>
+            <span className="text-slate-400">Target Delivery: <strong className="text-slate-800">{order.estimatedDelivery}</strong></span>
+          </div>
+
+          <div className="grid grid-cols-4 gap-2 text-center text-xs">
+            <div className="p-2 rounded-lg bg-emerald-50 text-emerald-800 font-bold border border-emerald-200">
+              1. Order Confirmed ✓
+            </div>
+            <div className="p-2 rounded-lg bg-emerald-50 text-emerald-800 font-bold border border-emerald-200">
+              2. Warehouse Split ✓
+            </div>
+            <div className={`p-2 rounded-lg font-bold border ${isDispatched ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-brand-50 text-brand-700 border-brand-200'}`}>
+              3. Ready to Ship {isDispatched ? '✓' : '●'}
+            </div>
+            <div className={`p-2 rounded-lg font-bold border ${isDispatched ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-slate-50 text-slate-400 border-slate-200'}`}>
+              4. In Transit {isDispatched ? '✓' : '○'}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Overview Metadata Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -166,150 +215,152 @@ export function FulfillmentDetail() {
             <div>
               <span className="text-[11px] font-semibold text-slate-400 uppercase">Carrier & Tracking</span>
               <p className="text-xs font-bold text-slate-900 mt-0.5">
-                {order.shippingCarrier} {order.trackingNumber && `(${order.trackingNumber})`}
+                {order.shippingCarrier || carrier} {order.trackingNumber && `(${order.trackingNumber})`}
               </p>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Multi-Warehouse Split Allocation Manager */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-bold text-slate-900">Line Item Warehouse Allocation Matrix</h3>
-          <span className="text-xs text-slate-500">
-            Split across regional hubs to minimize transport delay
-          </span>
+      {/* Contextual Prompt: Stock Arrived Notification (Requirement 13) */}
+      <div className="p-4 rounded-xl bg-blue-50 border border-blue-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+        <div className="flex items-center gap-2.5">
+          <Sparkles className="w-5 h-5 text-blue-600 shrink-0" />
+          <div>
+            <span className="font-bold text-blue-950">New Stock Replenished at Ahmedabad Hub (+25 Units arrived)</span>
+            <p className="text-[11px] text-blue-700 mt-0.5">
+              You can now consolidate all items into a single warehouse shipment instead of multi-hub splits.
+            </p>
+          </div>
         </div>
-
-        {order.lines.map((line) => {
-          const totalAllocated = line.allocations.reduce((sum, a) => sum + a.qty, 0);
-
-          return (
-            <Card key={line.lineId} className="border-slate-200 overflow-hidden">
-              <div className="p-4 bg-slate-50/80 border-b border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div>
-                  <h4 className="font-bold text-slate-900 text-sm">{line.productName}</h4>
-                  <p className="text-xs text-slate-500">
-                    Product ID: {line.productId} • Total Required: <strong className="text-slate-800">{line.requiredQty} units</strong>
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <div className="text-xs text-right">
-                    <span className="text-slate-500">Allocated: </span>
-                    <strong className="text-emerald-700">{totalAllocated}</strong> / {line.requiredQty}
-                  </div>
-                  {line.backorderedQty > 0 ? (
-                    <Badge variant="danger" size="sm">
-                      {line.backorderedQty} Backordered
-                    </Badge>
-                  ) : (
-                    <Badge variant="success" size="sm">
-                      100% Sourced
-                    </Badge>
-                  )}
-                </div>
-              </div>
-
-              <CardContent className="p-5">
-                <div className="space-y-3">
-                  <div className="text-xs font-bold uppercase text-slate-400 tracking-wider">
-                    Warehouse Sourcing Breakdown
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {line.allocations.map((alloc, idx) => (
-                      <div
-                        key={idx}
-                        className="p-3.5 rounded-xl border border-slate-200 bg-white shadow-xs flex items-center justify-between"
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <Building className="w-4 h-4 text-brand-600 shrink-0" />
-                          <div>
-                            <div className="font-bold text-slate-900 text-xs">{alloc.warehouseName}</div>
-                            <span className="text-[10px] text-slate-400">{alloc.warehouseId}</span>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-black text-slate-900 text-sm">{alloc.qty} Units</div>
-                          <Badge variant="brand" size="sm">Allocated</Badge>
-                        </div>
-                      </div>
-                    ))}
-
-                    {line.backorderedQty > 0 && (
-                      <div
-                        onClick={() => {
-                          setSelectedLineId(line.lineId);
-                          setIsAllocateModalOpen(true);
-                        }}
-                        className="p-3.5 rounded-xl border border-dashed border-amber-300 bg-amber-50/50 hover:bg-amber-50 cursor-pointer transition-colors flex items-center justify-between"
-                      >
-                        <div className="flex items-center gap-2">
-                          <AlertTriangle className="w-4 h-4 text-amber-600" />
-                          <div>
-                            <div className="font-bold text-amber-900 text-xs">Remaining Backorder</div>
-                            <span className="text-[10px] text-amber-700">Click to split from East/West Hub</span>
-                          </div>
-                        </div>
-                        <span className="font-bold text-amber-900 text-sm">{line.backorderedQty} Units</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+        <Button
+          variant="primary"
+          size="sm"
+          icon={Package}
+          onClick={handleConsolidateBackorder}
+        >
+          Consolidate Remaining Backorder
+        </Button>
       </div>
 
-      {/* Split Allocation Modal */}
-      <Modal
-        isOpen={isAllocateModalOpen}
-        onClose={() => setIsAllocateModalOpen(false)}
-        title="Split Sourcing Stock Allocation"
-        description="Allocate inventory from secondary regional depot to fulfill remaining balance"
-        footer={
-          <>
-            <Button variant="secondary" onClick={() => setIsAllocateModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="primary" onClick={handleAllocate}>
-              Confirm Allocation
-            </Button>
-          </>
-        }
-      >
-        <form onSubmit={handleAllocate} className="space-y-4 text-left">
-          <Select
-            label="Source Regional Warehouse"
-            value={selectedWarehouseId}
-            onChange={(e) => setSelectedWarehouseId(e.target.value)}
-            options={warehouses.map((w) => ({
-              value: w.id,
-              label: `${w.name} (${w.location}) - Available: ${w.stockLevels['PRD-101']?.available || 10} units`,
-            }))}
-          />
+      {/* RECOMMENDED WAREHOUSE SPLIT TABLE (Requirement 13) */}
+      <Card>
+        <CardHeader
+          title="Recommended Warehouse Split Table"
+          description="Algorithmic split optimization based on proximity, shipping rates, and real-time depot stock"
+          action={
+            <div className="flex items-center gap-2">
+              <Button
+                variant={!isManualOverride ? 'primary' : 'secondary'}
+                size="sm"
+                icon={Check}
+                onClick={handleAcceptSuggestedSplit}
+              >
+                Accept Suggested Split
+              </Button>
+              <Button
+                variant={isManualOverride ? 'primary' : 'secondary'}
+                size="sm"
+                icon={Edit3}
+                onClick={() => setIsManualOverride(!isManualOverride)}
+              >
+                {isManualOverride ? 'Lock Quantities' : 'Manual Override'}
+              </Button>
+            </div>
+          }
+        />
 
-          <Input
-            label="Quantity to Allocate"
-            type="number"
-            min="1"
-            max="20"
-            value={allocQty}
-            onChange={(e) => setAllocQty(e.target.value)}
-            helperText="Stock will immediately be marked as Reserved"
-          />
-        </form>
-      </Modal>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead>
+              <tr className="bg-slate-50/80 border-b border-slate-200/80 text-slate-500 uppercase font-semibold text-[10px] tracking-wider">
+                <th className="px-5 py-3">Warehouse</th>
+                <th className="px-4 py-3 text-center">Allocated Quantity</th>
+                <th className="px-4 py-3 text-center">Shipment Count</th>
+                <th className="px-4 py-3 text-right">Estimated Cost (INR ₹)</th>
+                <th className="px-5 py-3 text-right">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {splitRows.map((row) => (
+                <tr key={row.warehouseId} className="hover:bg-slate-50/70">
+                  {/* Warehouse Name */}
+                  <td className="px-5 py-3.5">
+                    <div className="flex items-center gap-2">
+                      <Building className="w-4 h-4 text-slate-400 shrink-0" />
+                      <div>
+                        <div className="font-bold text-slate-900">{row.warehouse}</div>
+                        <div className="text-[10px] text-slate-400 font-mono">{row.warehouseId}</div>
+                      </div>
+                    </div>
+                  </td>
+
+                  {/* Quantity */}
+                  <td className="px-4 py-3.5 text-center">
+                    {isManualOverride ? (
+                      <input
+                        type="number"
+                        min="0"
+                        max="20"
+                        value={row.quantity}
+                        onChange={(e) => handleSplitQuantityChange(row.warehouseId, e.target.value)}
+                        className="w-16 px-2 py-1 text-center font-bold text-xs bg-white border border-brand-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+                      />
+                    ) : (
+                      <span className="font-black text-slate-900 text-sm">{row.quantity} Units</span>
+                    )}
+                  </td>
+
+                  {/* Shipment Count */}
+                  <td className="px-4 py-3.5 text-center font-semibold text-slate-700">
+                    {row.shipments} {row.shipments === 1 ? 'Dispatch' : 'Dispatches'}
+                  </td>
+
+                  {/* Estimated Cost */}
+                  <td className="px-4 py-3.5 text-right font-bold text-slate-900">
+                    ₹{row.estimatedCost.toLocaleString('en-IN')}
+                  </td>
+
+                  {/* Status */}
+                  <td className="px-5 py-3.5 text-right">
+                    {row.quantity > 0 ? (
+                      <Badge variant="success" size="sm">
+                        Stock Allocated
+                      </Badge>
+                    ) : (
+                      <Badge variant="default" size="sm">
+                        No Items
+                      </Badge>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="bg-slate-50/90 font-bold border-t border-slate-200 text-slate-900">
+                <td className="px-5 py-3">Total Sourced Fulfillment:</td>
+                <td className="px-4 py-3 text-center text-brand-700 font-black">{totalAllocated} Units</td>
+                <td className="px-4 py-3 text-center">
+                  {splitRows.reduce((sum, r) => sum + r.shipments, 0)} Dispatches
+                </td>
+                <td className="px-4 py-3 text-right text-brand-700">
+                  ₹{totalSplitCost.toLocaleString('en-IN')}
+                </td>
+                <td className="px-5 py-3 text-right">
+                  <Badge variant="brand" size="sm">100% Ready</Badge>
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </Card>
 
       {/* Dispatch Confirmation Modal */}
       <Modal
         isOpen={isDispatchModalOpen}
         onClose={() => setIsDispatchModalOpen(false)}
         title="Confirm Carrier Dispatch"
-        description="Generate bill of lading, assign carrier tracking, and update ERP"
+        description="Generate bill of lading, assign carrier tracking, and update ERP status"
         footer={
           <>
             <Button variant="secondary" onClick={() => setIsDispatchModalOpen(false)}>
@@ -323,7 +374,7 @@ export function FulfillmentDetail() {
       >
         <form onSubmit={handleDispatch} className="space-y-4 text-left">
           <Input
-            label="Freight / Shipping Carrier"
+            label="Freight / Courier Carrier"
             value={carrier}
             onChange={(e) => setCarrier(e.target.value)}
             required
@@ -335,7 +386,7 @@ export function FulfillmentDetail() {
             required
           />
           <p className="text-xs text-slate-500">
-            Dispatching this shipment enables delivery reconciliation in the Invoicing Ledger and notifies customer via portal.
+            Dispatching this shipment generates the invoice and informs the customer via the Portal.
           </p>
         </form>
       </Modal>

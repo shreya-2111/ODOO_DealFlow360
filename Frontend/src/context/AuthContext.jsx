@@ -4,33 +4,37 @@ import { USER_ROLES } from '../data/mockData';
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [currentUser, setCurrentUser] = useState(USER_ROLES[0]); // Alex Rivera (Sales Rep)
-  const [tenant, setTenant] = useState('Global Enterprise Cloud Org');
+  const [currentUser, setCurrentUser] = useState(USER_ROLES[0]); // Amit Sharma (Sales Rep)
+  const [tenant, setTenant] = useState('DealFlow360 Enterprise India');
 
   const switchRole = (roleId) => {
-    const user = USER_ROLES.find(r => r.id === roleId);
+    const user = USER_ROLES.find((r) => r.id === roleId);
     if (user) {
       setCurrentUser(user);
     }
   };
 
+  const isSalesRep = currentUser.id === 'sales_rep';
+  const isSalesManager = currentUser.id === 'sales_manager';
+  const isFinanceOps = currentUser.id === 'finance_ops';
   const isCustomer = currentUser.id === 'customer';
-  const isManager = currentUser.id === 'sales_manager' || currentUser.id === 'admin';
-  const isFinance = currentUser.id === 'finance_officer' || currentUser.id === 'admin';
-  const isOps = currentUser.id === 'ops_lead' || currentUser.id === 'admin';
+  const isAdmin = currentUser.id === 'admin';
 
   return (
-    <AuthContext.Provider value={{
-      currentUser,
-      switchRole,
-      roles: USER_ROLES,
-      tenant,
-      setTenant,
-      isCustomer,
-      isManager,
-      isFinance,
-      isOps
-    }}>
+    <AuthContext.Provider
+      value={{
+        currentUser,
+        switchRole,
+        roles: USER_ROLES,
+        tenant,
+        setTenant,
+        isSalesRep,
+        isSalesManager,
+        isFinanceOps,
+        isCustomer,
+        isAdmin,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
