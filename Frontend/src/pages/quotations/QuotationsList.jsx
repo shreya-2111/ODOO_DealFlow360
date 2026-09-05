@@ -11,16 +11,12 @@ import { Input, Select, TextArea } from '../../components/ui/Input';
 import {
   Plus,
   Search,
-  Filter,
   ArrowUpDown,
   ChevronLeft,
   ChevronRight,
   Sparkles,
   Calendar,
-  User,
-  ShieldAlert,
-  SlidersHorizontal,
-  FileSpreadsheet
+  User
 } from 'lucide-react';
 
 export function QuotationsList() {
@@ -125,7 +121,17 @@ export function QuotationsList() {
       return;
     }
 
-    const prd = products.find((p) => p.id === selectedProductId) || products[0];
+    const prd = products.find((p) => p.id === selectedProductId) || products[0] || {
+      id: 'PRD-CUSTOM',
+      name: 'Custom Product / Service',
+      sku: 'GEN-SRV-01',
+      category: 'Hardware',
+      type: 'one_time',
+      cadence: 'one_time',
+      basePrice: 50000,
+      unitCost: 30000,
+      taxRate: 18.0
+    };
     const newQuoteId = `QT-2026-${Math.floor(1000 + Math.random() * 9000)}`;
 
     const newQuote = {

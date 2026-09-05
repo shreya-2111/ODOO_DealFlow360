@@ -2,25 +2,19 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
-import logoImg from '../../assets/logo.png';
 import { Card, CardHeader, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Stepper } from '../../components/ui/Stepper';
 import { Modal } from '../../components/ui/Modal';
-import { Input, Select } from '../../components/ui/Input';
+import { Input } from '../../components/ui/Input';
 import {
   ArrowLeft,
-  Receipt,
   ShieldCheck,
   CheckCircle2,
   Clock,
   Download,
-  CreditCard,
-  Truck,
-  AlertTriangle,
-  Building,
-  FileCheck
+  CreditCard
 } from 'lucide-react';
 
 export function InvoiceDetail() {
@@ -109,11 +103,6 @@ export function InvoiceDetail() {
           >
             Invoices Ledger
           </Button>
-          <img
-            src={logoImg}
-            alt="DealFlow360"
-            className="h-10 w-10 object-contain rounded-xl border border-slate-200 bg-white shadow-2xs hidden sm:block"
-          />
           <div>
             <div className="flex items-center gap-2.5">
               <h1 className="text-xl font-bold text-slate-900 font-mono">{invoice.id}</h1>

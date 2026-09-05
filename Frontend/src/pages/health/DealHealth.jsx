@@ -5,67 +5,17 @@ import { useToast } from '../../context/ToastContext';
 import { Card, CardHeader, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
-import {
-  Activity,
-  AlertTriangle,
-  Clock,
-  Send,
-  Zap,
-  CheckCircle2,
-  TrendingDown,
-  ArrowRight,
-  User,
-  IndianRupee,
-  Layers,
-  Truck,
-  Percent,
-  TrendingUp,
-  AlertOctagon
-} from 'lucide-react';
+import { Send } from 'lucide-react';
 
 export function DealHealth() {
   const navigate = useNavigate();
   const { quotations, calculateQuoteFinancials } = useData();
   const { addToast } = useToast();
 
-  // Stalled Deals Data (Single Unified Deal)
-  const [stalledDeals, setStalledDeals] = useState([
-    {
-      id: 'QT-2026-001',
-      customer: 'Acme Corp',
-      amount: 591035,
-      lastActivity: '2026-09-02',
-      daysStalled: 3,
-      owner: 'Amit Sharma'
-    }
-  ]);
-
-  // Discount Anomaly Alerts Data (Single Unified Deal)
-  const [discountAnomalies, setDiscountAnomalies] = useState([
-    {
-      id: 'DA-1',
-      quoteId: 'QT-2026-001',
-      rep: 'Amit Sharma',
-      customer: 'Acme Corp',
-      discount: 12,
-      historicalAvg: 8,
-      difference: '+4% Breach',
-      risk: 'Medium'
-    }
-  ]);
-
-  // Delivery Promise Slippages Data (Single Unified Deal)
-  const [deliverySlippages, setDeliverySlippages] = useState([
-    {
-      id: 'DS-1',
-      orderId: 'FO-9001',
-      customer: 'Acme Corp',
-      expectedDate: '2026-09-15',
-      currentEstimate: '2026-09-15',
-      delay: 'On Track (Multi-Depot Split)',
-      risk: 'Low'
-    }
-  ]);
+  // Deal Health Telemetry Datasets (Empty for pure UI)
+  const [stalledDeals] = useState([]);
+  const [discountAnomalies] = useState([]);
+  const [deliverySlippages] = useState([]);
 
   const handleNudge = (entityName, repName) => {
     addToast(`Automated reminder & pipeline nudge sent to ${repName} for ${entityName}!`, 'info');
@@ -207,49 +157,57 @@ export function DealHealth() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {stalledDeals.map((deal) => (
-                <tr
-                  key={deal.id}
-                  onClick={() => navigate(`/quotations/${deal.id}`)}
-                  className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
-                >
-                  <td className="px-5 py-3.5 font-bold text-slate-900 group-hover:text-brand-600 transition-colors">
-                    {deal.customer}
-                  </td>
-                  <td className="px-4 py-3.5 font-mono text-brand-700 font-bold">
-                    {deal.id}
-                  </td>
-                  <td className="px-4 py-3.5 text-right font-black text-slate-900">
-                    ₹{deal.amount.toLocaleString('en-IN')}
-                  </td>
-                  <td className="px-4 py-3.5 text-slate-600">{deal.lastActivity}</td>
-                  <td className="px-4 py-3.5 text-center">
-                    <Badge variant="warning" size="sm">
-                      {deal.daysStalled} Days Idle
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3.5 text-slate-700 font-medium">{deal.owner}</td>
-                  <td className="px-5 py-3.5 text-right">
-                    <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        icon={Send}
-                        onClick={() => handleNudge(deal.customer, deal.owner)}
-                      >
-                        Nudge
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEscalate(deal.customer)}
-                      >
-                        Escalate
-                      </Button>
-                    </div>
+              {stalledDeals.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-10 text-center text-slate-400">
+                    All deals progressing on schedule. No stalled opportunities detected beyond SLA limits.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                stalledDeals.map((deal) => (
+                  <tr
+                    key={deal.id}
+                    onClick={() => navigate(`/quotations/${deal.id}`)}
+                    className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
+                  >
+                    <td className="px-5 py-3.5 font-bold text-slate-900 group-hover:text-brand-600 transition-colors">
+                      {deal.customer}
+                    </td>
+                    <td className="px-4 py-3.5 font-mono text-brand-700 font-bold">
+                      {deal.id}
+                    </td>
+                    <td className="px-4 py-3.5 text-right font-black text-slate-900">
+                      ₹{deal.amount.toLocaleString('en-IN')}
+                    </td>
+                    <td className="px-4 py-3.5 text-slate-600">{deal.lastActivity}</td>
+                    <td className="px-4 py-3.5 text-center">
+                      <Badge variant="warning" size="sm">
+                        {deal.daysStalled} Days Idle
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3.5 text-slate-700 font-medium">{deal.owner}</td>
+                    <td className="px-5 py-3.5 text-right">
+                      <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          icon={Send}
+                          onClick={() => handleNudge(deal.customer, deal.owner)}
+                        >
+                          Nudge
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEscalate(deal.customer)}
+                        >
+                          Escalate
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -275,51 +233,59 @@ export function DealHealth() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {discountAnomalies.map((anom) => (
-                <tr
-                  key={anom.id}
-                  onClick={() => navigate(`/approvals/${anom.quoteId}`)}
-                  className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
-                >
-                  <td className="px-5 py-3.5 font-medium text-slate-800">{anom.rep}</td>
-                  <td className="px-4 py-3.5">
-                    <div className="font-bold text-slate-900 group-hover:text-brand-600 transition-colors">
-                      {anom.customer}
-                    </div>
-                    <span className="font-mono text-[10px] text-slate-400">{anom.quoteId}</span>
-                  </td>
-                  <td className="px-4 py-3.5 text-center">
-                    <span className="font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
-                      {anom.discount}%
-                    </span>
-                  </td>
-                  <td className="px-4 py-3.5 text-center text-slate-600 font-semibold">{anom.historicalAvg}%</td>
-                  <td className="px-4 py-3.5 text-center font-bold text-rose-600">{anom.difference}</td>
-                  <td className="px-4 py-3.5 text-center">
-                    <Badge variant="danger" size="sm">
-                      {anom.risk} Risk
-                    </Badge>
-                  </td>
-                  <td className="px-5 py-3.5 text-right">
-                    <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => handleNudge(anom.customer, anom.rep)}
-                      >
-                        Nudge
-                      </Button>
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={() => handleEscalate(`${anom.customer} (${anom.discount}% discount)`)}
-                      >
-                        Escalate
-                      </Button>
-                    </div>
+              {discountAnomalies.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-10 text-center text-slate-400">
+                    Governance compliant. No discount concessions exceeding policy thresholds.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                discountAnomalies.map((anom) => (
+                  <tr
+                    key={anom.id}
+                    onClick={() => navigate(`/approvals/${anom.quoteId}`)}
+                    className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
+                  >
+                    <td className="px-5 py-3.5 font-medium text-slate-800">{anom.rep}</td>
+                    <td className="px-4 py-3.5">
+                      <div className="font-bold text-slate-900 group-hover:text-brand-600 transition-colors">
+                        {anom.customer}
+                      </div>
+                      <span className="font-mono text-[10px] text-slate-400">{anom.quoteId}</span>
+                    </td>
+                    <td className="px-4 py-3.5 text-center">
+                      <span className="font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                        {anom.discount}%
+                      </span>
+                    </td>
+                    <td className="px-4 py-3.5 text-center text-slate-600 font-semibold">{anom.historicalAvg}%</td>
+                    <td className="px-4 py-3.5 text-center font-bold text-rose-600">{anom.difference}</td>
+                    <td className="px-4 py-3.5 text-center">
+                      <Badge variant="danger" size="sm">
+                        {anom.risk} Risk
+                      </Badge>
+                    </td>
+                    <td className="px-5 py-3.5 text-right">
+                      <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => handleNudge(anom.customer, anom.rep)}
+                        >
+                          Nudge
+                        </Button>
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={() => handleEscalate(`${anom.customer} (${anom.discount}% discount)`)}
+                        >
+                          Escalate
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -344,43 +310,51 @@ export function DealHealth() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {deliverySlippages.map((slip) => (
-                <tr
-                  key={slip.id}
-                  onClick={() => navigate('/fulfillment')}
-                  className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
-                >
-                  <td className="px-5 py-3.5 font-bold text-slate-900 group-hover:text-brand-600 transition-colors">
-                    {slip.customer}
-                  </td>
-                  <td className="px-4 py-3.5 font-mono text-brand-700 font-bold">{slip.orderId}</td>
-                  <td className="px-4 py-3.5 text-slate-600">{slip.expectedDate}</td>
-                  <td className="px-4 py-3.5 font-semibold text-rose-700">{slip.currentEstimate}</td>
-                  <td className="px-4 py-3.5 text-center">
-                    <Badge variant={slip.risk === 'Medium' ? 'warning' : 'default'} size="sm">
-                      {slip.delay}
-                    </Badge>
-                  </td>
-                  <td className="px-5 py-3.5 text-right">
-                    <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => handleNudge(slip.customer, 'Logistics Lead')}
-                      >
-                        Nudge
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEscalate(`Delivery for ${slip.customer}`)}
-                      >
-                        Escalate
-                      </Button>
-                    </div>
+              {deliverySlippages.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-10 text-center text-slate-400">
+                    All multi-depot shipments and logistics promises on track.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                deliverySlippages.map((slip) => (
+                  <tr
+                    key={slip.id}
+                    onClick={() => navigate('/fulfillment')}
+                    className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
+                  >
+                    <td className="px-5 py-3.5 font-bold text-slate-900 group-hover:text-brand-600 transition-colors">
+                      {slip.customer}
+                    </td>
+                    <td className="px-4 py-3.5 font-mono text-brand-700 font-bold">{slip.orderId}</td>
+                    <td className="px-4 py-3.5 text-slate-600">{slip.expectedDate}</td>
+                    <td className="px-4 py-3.5 font-semibold text-rose-700">{slip.currentEstimate}</td>
+                    <td className="px-4 py-3.5 text-center">
+                      <Badge variant={slip.risk === 'Medium' ? 'warning' : 'default'} size="sm">
+                        {slip.delay}
+                      </Badge>
+                    </td>
+                    <td className="px-5 py-3.5 text-right">
+                      <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => handleNudge(slip.customer, 'Logistics Lead')}
+                        >
+                          Nudge
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEscalate(`Delivery for ${slip.customer}`)}
+                        >
+                          Escalate
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

@@ -1,20 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../../context/DataContext';
-import { Card, CardHeader, CardContent } from '../../components/ui/Card';
+import { Card, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
-import {
-  Receipt,
-  IndianRupee,
-  Calendar,
-  CheckCircle2,
-  Clock,
-  ArrowRight,
-  Search,
-  Filter,
-  ShieldCheck
-} from 'lucide-react';
+import { ArrowRight, Search, ShieldCheck } from 'lucide-react';
 
 export function InvoicesList() {
   const navigate = useNavigate();
@@ -156,7 +146,14 @@ export function InvoicesList() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredInvoices.map((inv) => {
+              {filteredInvoices.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
+                    No GST invoices generated. Confirmed orders ready for revenue recognition will populate this ledger.
+                  </td>
+                </tr>
+              ) : (
+                filteredInvoices.map((inv) => {
                 const isPaid = inv.status === 'Paid';
                 const isUnpaid = inv.status === 'Unpaid';
 
@@ -220,7 +217,7 @@ export function InvoicesList() {
                     </td>
                   </tr>
                 );
-              })}
+              }))}
             </tbody>
           </table>
         </div>

@@ -4,32 +4,30 @@ import {
   LayoutDashboard,
   FileSpreadsheet,
   Kanban,
-  Users,
   Truck,
   Repeat,
   Activity,
   BarChart3,
   Sliders,
   Globe,
-  CheckSquare,
-  Package,
-  Layers,
-  ShieldCheck
+  CheckSquare
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import logoImg from '../../assets/logo.png';
 
+// Dynamic sidebar navigation adapting items and badges based on the active role
 export function Sidebar({ isOpen, onClose }) {
   const location = useLocation();
-  const { currentUser, isSalesRep, isSalesManager, isFinanceOps, isCustomer, isAdmin } = useAuth();
+  const { currentUser, isSalesManager, isFinanceOps, isCustomer, isAdmin } = useAuth();
   const { quotations, fulfillmentSplits, subscriptions, dealHealth } = useData();
 
+  // Dynamic badge counts based on live data
   const pendingApprovalsCount = quotations.filter((q) => q.stage === 'Pending Approval').length;
   const activeFulfillmentCount = fulfillmentSplits.filter((f) => f.status !== 'Ready to Ship').length;
   const atRiskCount = dealHealth.kpis.atRiskDeals;
 
-  // Build navigation dynamically based on logged in role
+  // Build navigation sections dynamically based on logged-in role
   const getNavItems = () => {
     if (isCustomer) {
       return [
@@ -44,7 +42,7 @@ export function Sidebar({ isOpen, onClose }) {
 
     const sections = [];
 
-    // Sales & CPQ
+    // Sales & CPQ navigation section
     const salesItems = [
       { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
       { name: 'Quotations', path: '/quotations', icon: FileSpreadsheet, badge: quotations.length },
@@ -63,7 +61,7 @@ export function Sidebar({ isOpen, onClose }) {
 
     sections.push({ title: 'Sales & Pipeline', items: salesItems });
 
-    // Operations & Revenue
+    // Operations & Revenue navigation section
     const opsItems = [];
     if (isFinanceOps || isSalesManager || isAdmin) {
       opsItems.push({
@@ -78,20 +76,23 @@ export function Sidebar({ isOpen, onClose }) {
 
     sections.push({ title: 'Operations & Billing', items: opsItems });
 
-    // Intelligence & Governance
+    // Intelligence & Analytics navigation section
     const intelItems = [
       { name: 'Deal Health', path: '/health', icon: Activity, badge: atRiskCount, badgeColor: 'bg-rose-100 text-rose-800' },
       { name: 'Analytics Reports', path: '/reports', icon: BarChart3 }
     ];
 
-    if (isAdmin || isSalesManager) {
-      intelItems.push({ name: 'Admin Settings', path: '/settings', icon: Sliders });
+    sections.push({ title: 'Intelligence & Analytics', items: intelItems });
+
+    // Platform Administration (Only for Admin persona)
+    if (isAdmin) {
+      sections.push({
+        title: 'Platform Administration',
+        items: [
+          { name: 'Admin Settings', path: '/settings', icon: Sliders }
+        ]
+      });
     }
-
-    // Quick Portal Preview
-    intelItems.push({ name: 'Customer Portal View', path: '/portal', icon: Globe, highlight: true });
-
-    sections.push({ title: 'Intelligence & Admin', items: intelItems });
 
     return sections;
   };
@@ -100,7 +101,7 @@ export function Sidebar({ isOpen, onClose }) {
 
   return (
     <>
-      {/* Mobile Backdrop */}
+      {/* Mobile backdrop */}
       {isOpen && (
         <div
           className="fixed inset-0 z-40 bg-slate-900/30 backdrop-blur-xs lg:hidden"
@@ -108,12 +109,13 @@ export function Sidebar({ isOpen, onClose }) {
         />
       )}
 
+      {/* Main navigation drawer */}
       <aside
         className={`fixed top-0 bottom-0 left-0 z-40 w-64 bg-white border-r border-slate-200/80 flex flex-col transition-transform duration-200 lg:translate-x-0 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        {/* Brand Header */}
+        {/* Brand identity header */}
         <div className="h-16 px-5 flex items-center justify-between border-b border-slate-100">
           <div className="flex items-center gap-2.5">
             <img
@@ -132,13 +134,13 @@ export function Sidebar({ isOpen, onClose }) {
           </div>
         </div>
 
-        {/* Navigation List */}
+        {/* Scrollable menu items list */}
         <div className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
           {navSections.map((section, idx) => (
             <div key={idx}>
               <div className="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                 {section.title}
-              </div> 
+              </div>
               <nav className="space-y-0.5">
                 {section.items.map((item) => {
                   const Icon = item.icon;
@@ -176,7 +178,7 @@ export function Sidebar({ isOpen, onClose }) {
           ))}
         </div>
 
-        {/* Active Role Indicator in Sidebar Footer */}
+        {/* Active persona status footer */}
         <div className="p-3.5 border-t border-slate-100 bg-slate-50/70">
           <div className="flex items-center justify-between text-[11px] text-slate-500 mb-1">
             <span className="flex items-center gap-1.5 font-semibold text-slate-800">

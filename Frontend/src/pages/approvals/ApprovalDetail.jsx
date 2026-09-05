@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import logoImg from '../../assets/logo.png';
 import { Card, CardHeader, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -14,18 +13,7 @@ import {
   CheckCircle2,
   XCircle,
   RotateCcw,
-  AlertTriangle,
-  FileSpreadsheet,
-  ShieldCheck,
-  Building,
-  User,
-  Clock,
-  ExternalLink,
-  IndianRupee,
-  Check,
-  X,
-  Send,
-  Sparkles
+  FileSpreadsheet
 } from 'lucide-react';
 
 export function ApprovalDetail() {
@@ -180,11 +168,6 @@ export function ApprovalDetail() {
           >
             Approvals Queue
           </Button>
-          <img
-            src={logoImg}
-            alt="DealFlow360"
-            className="h-10 w-10 object-contain rounded-xl border border-slate-200 bg-white shadow-2xs hidden sm:block"
-          />
           <div>
             <div className="flex items-center gap-2.5">
               <h1 className="text-xl font-bold text-slate-900 font-mono">{quote.id}</h1>

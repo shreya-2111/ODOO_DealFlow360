@@ -3,31 +3,21 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import logoImg from '../../assets/logo.png';
 import { Card, CardHeader, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
-import { Input, Select, TextArea } from '../../components/ui/Input';
-import { Modal } from '../../components/ui/Modal';
+import { TextArea } from '../../components/ui/Input';
 import {
   ArrowLeft,
   Plus,
   Minus,
   Trash2,
   AlertTriangle,
-  CheckCircle2,
   Send,
   Sparkles,
-  ShieldAlert,
-  IndianRupee,
-  TrendingUp,
   Search,
-  Filter,
-  Check,
   X,
-  Package,
   Truck,
-  FileCheck,
   ExternalLink
 } from 'lucide-react';
 
@@ -43,7 +33,7 @@ export function QuotationDetail() {
     upsellSuggestions,
     governanceRules
   } = useData();
-  const { currentUser, isCustomer } = useAuth();
+  const { currentUser } = useAuth();
   const { addToast } = useToast();
 
   const quote = quotations.find((q) => q.id === id);
@@ -127,7 +117,7 @@ export function QuotationDetail() {
       addToast(`Increased ${product.name} quantity to ${existing.quantity + 1}`, 'success');
     } else {
       const newLine = {
-        id: `item-${Date.now()}`,
+        id: `item-${items.length + 1}-${product.id}`,
         productId: product.id,
         name: product.name,
         sku: product.sku,
@@ -150,6 +140,7 @@ export function QuotationDetail() {
   // Attach Upsell Recommendation
   const handleAttachUpsell = (upsell) => {
     const prd = products.find((p) => p.id === upsell.productId) || products[0];
+    if (!prd) return;
     handleAddToCart(prd);
     setDismissedUpsells((prev) => [...prev, upsell.id]);
     addToast(`Attached recommended upsell: ${upsell.name}! Margin booster updated.`, 'success');
@@ -196,11 +187,6 @@ export function QuotationDetail() {
           >
             Quotations
           </Button>
-          <img
-            src={logoImg}
-            alt="DealFlow360"
-            className="h-10 w-10 object-contain rounded-xl border border-slate-200 bg-white shadow-2xs hidden sm:block"
-          />
           <div>
             <div className="flex items-center gap-2.5">
               <h1 className="text-xl font-bold text-slate-900 font-mono">{quote.id}</h1>

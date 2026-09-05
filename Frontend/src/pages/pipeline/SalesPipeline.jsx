@@ -3,22 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { Card, CardHeader, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import {
-  Kanban,
   FileSpreadsheet,
   RefreshCw,
-  Sliders,
   LogOut,
-  Plus,
   ArrowRight,
   Clock,
-  AlertTriangle,
-  User,
-  IndianRupee,
-  Building
+  User
 } from 'lucide-react';
 
 export function SalesPipeline() {
@@ -85,14 +78,6 @@ export function SalesPipeline() {
             onClick={handleReload}
           >
             {isReloading ? 'Reloading...' : 'Reload Data'}
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            icon={Sliders}
-            onClick={() => navigate('/settings')}
-          >
-            Go to Back-end
           </Button>
           <Button
             variant="outline"

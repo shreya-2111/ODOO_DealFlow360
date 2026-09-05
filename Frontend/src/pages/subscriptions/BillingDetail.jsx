@@ -11,18 +11,11 @@ import {
   ArrowLeft,
   Repeat,
   Package,
-  Calendar,
-  CreditCard,
   CheckCircle2,
-  Clock,
   Pause,
   Play,
-  ArrowUpRight,
-  ShieldCheck,
   Receipt,
-  FileText,
   Sliders,
-  AlertCircle,
   XCircle
 } from 'lucide-react';
 

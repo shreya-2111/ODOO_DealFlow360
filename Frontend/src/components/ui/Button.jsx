@@ -1,5 +1,6 @@
 import React from 'react';
 
+// Reusable button component with variant styles and optional icons
 export function Button({
   children,
   variant = 'primary',
@@ -44,80 +45,4 @@ export function Button({
       {Icon && iconPosition === 'right' && <Icon className={size === 'sm' ? 'w-3.5 h-3.5' : 'w-4 h-4'} />}
     </button>
   );
-}
-
-export function Badge({
-  children,
-  variant = 'default',
-  size = 'md',
-  dot = false,
-  className = '',
-}) {
-  const variants = {
-    default: 'bg-slate-100 text-slate-700 border-slate-200',
-    brand: 'bg-brand-50 text-brand-700 border-brand-200',
-    success: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    warning: 'bg-amber-50 text-amber-700 border-amber-200',
-    danger: 'bg-rose-50 text-rose-700 border-rose-200',
-    purple: 'bg-purple-50 text-purple-700 border-purple-200',
-    cyan: 'bg-cyan-50 text-cyan-700 border-cyan-200',
-  };
-
-  const dotColors = {
-    default: 'bg-slate-400',
-    brand: 'bg-brand-500',
-    success: 'bg-emerald-500',
-    warning: 'bg-amber-500',
-    danger: 'bg-rose-500',
-    purple: 'bg-purple-500',
-    cyan: 'bg-cyan-500',
-  };
-
-  const sizes = {
-    sm: 'text-[11px] px-2 py-0.5 font-medium',
-    md: 'text-xs px-2.5 py-1 font-medium',
-    lg: 'text-sm px-3 py-1.5 font-semibold',
-  };
-
-  return (
-    <span
-      className={`inline-flex items-center rounded-md border ${variants[variant]} ${sizes[size]} ${className}`}
-    >
-      {dot && (
-        <span
-          className={`w-1.5 h-1.5 rounded-full mr-1.5 shrink-0 ${dotColors[variant]}`}
-        />
-      )}
-      {children}
-    </span>
-  );
-}
-
-export function Card({ children, className = '', hover = false, ...props }) {
-  return (
-    <div
-      className={`bg-white rounded-xl border border-slate-200/80 shadow-subtle ${
-        hover ? 'hover:shadow-card-hover hover:border-slate-300 transition-all duration-200' : ''
-      } ${className}`}
-      {...props}
-    >
-      {children}
-    </div>
-  );
-}
-
-export function CardHeader({ title, description, action, className = '' }) {
-  return (
-    <div className={`p-5 pb-3 border-b border-slate-100 flex items-center justify-between gap-4 ${className}`}>
-      <div>
-        <h3 className="font-semibold text-slate-900 text-base">{title}</h3>
-        {description && <p className="text-xs text-slate-500 mt-0.5">{description}</p>}
-      </div>
-      {action && <div>{action}</div>}
-    </div>
-  );
-}
-
-export function CardContent({ children, className = '' }) {
-  return <div className={`p-5 ${className}`}>{children}</div>;
 }

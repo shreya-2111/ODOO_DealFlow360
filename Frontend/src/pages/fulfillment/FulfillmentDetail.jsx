@@ -1,26 +1,21 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useData } from '../../context/DataContext';
-import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { Card, CardHeader, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
-import { Input, Select } from '../../components/ui/Input';
+import { Input } from '../../components/ui/Input';
 import {
   ArrowLeft,
   Truck,
   Building,
-  CheckCircle2,
-  AlertTriangle,
   Send,
   MapPin,
   Calendar,
-  Layers,
   Edit3,
   Check,
-  RotateCcw,
   Sparkles,
   Package
 } from 'lucide-react';
@@ -28,19 +23,17 @@ import {
 export function FulfillmentDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { fulfillmentOrders, warehouses, allocateStock, dispatchOrder } = useData();
-  const { currentUser } = useAuth();
+  const { fulfillmentOrders, acceptWarehouseSplit } = useData();
   const { addToast } = useToast();
 
   const order = (fulfillmentOrders || []).find((o) => o.id === id || o.orderId === id);
 
-  // Warehouse Split table state (Requirement 13)
+  // Warehouse Split table state 
   const [isManualOverride, setIsManualOverride] = useState(false);
   const [splitRows, setSplitRows] = useState([
     { warehouseId: 'WH-MUMBAI', warehouse: 'Mumbai Mega-Hub', quantity: 1, shipments: 1, estimatedCost: 700 },
     { warehouseId: 'WH-AHMEDABAD', warehouse: 'Ahmedabad Warehouse', quantity: 1, shipments: 1, estimatedCost: 450 }
   ]);
-  const [hasNewStockArrived, setHasNewStockArrived] = useState(false);
 
   const [isDispatchModalOpen, setIsDispatchModalOpen] = useState(false);
   const [carrier, setCarrier] = useState('BlueDart Express Logistics');
@@ -98,13 +91,12 @@ export function FulfillmentDetail() {
       { warehouseId: 'WH-DELHI', warehouse: 'Delhi Warehouse', quantity: 0, shipments: 0, estimatedCost: 0 },
       { warehouseId: 'WH-BLR', warehouse: 'Bengaluru Hub', quantity: 0, shipments: 0, estimatedCost: 0 }
     ]);
-    setHasNewStockArrived(false);
     addToast('Backorder consolidated into single shipment from Ahmedabad Warehouse! Saved ₹700 in freight.', 'success');
   };
 
   const handleDispatch = (e) => {
     e.preventDefault();
-    dispatchOrder(order.id, carrier, tracking);
+    acceptWarehouseSplit(order.id);
     setIsDispatchModalOpen(false);
     addToast(`Shipment dispatched! Tracking #${tracking} generated. Reconciled in Invoicing.`, 'success');
   };
@@ -353,7 +345,7 @@ export function FulfillmentDetail() {
         </div>
       </Card>
 
-      {/* Dispatch Confirmation Modal */}
+      {/* Dispatch Confirmation Modal */} 
       <Modal
         isOpen={isDispatchModalOpen}
         onClose={() => setIsDispatchModalOpen(false)}

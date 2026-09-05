@@ -4,16 +4,7 @@ import { useData } from '../../context/DataContext';
 import { Card, CardHeader, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
-import {
-  Repeat,
-  IndianRupee,
-  Calendar,
-  CreditCard,
-  ArrowRight,
-  Search,
-  CheckCircle2,
-  AlertCircle
-} from 'lucide-react';
+import { ArrowRight, Search } from 'lucide-react';
 
 export function SubscriptionsList() {
   const navigate = useNavigate();
@@ -121,7 +112,14 @@ export function SubscriptionsList() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredSubs.map((sub) => {
+              {filteredSubs.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
+                    No subscription contracts found. Recurring agreements generated from closed deals will appear here.
+                  </td>
+                </tr>
+              ) : (
+                filteredSubs.map((sub) => {
                 const isActive = sub.status === 'Active';
                 const mrrRate = sub.mrr || sub.recurringPrice || 0;
                 const arrRate = sub.arr || mrrRate * 12;
@@ -188,7 +186,7 @@ export function SubscriptionsList() {
                     </td>
                   </tr>
                 );
-              })}
+              }))}
             </tbody>
           </table>
         </div>
