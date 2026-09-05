@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-800 antialiased font-sans;
+  }
+}
+
+/* Custom scrollbar for clean dashboard tables & panels */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Card glass / subtle borders */
+.b2b-card {
+  @apply bg-white border border-slate-200/80 rounded-xl shadow-card transition-all duration-200;
+}
+
+.b2b-card-hover {
+  @apply hover:shadow-card-hover hover:border-slate-300;
+}
+
+/* Badge styling helper */
+.badge-dot {
+  @apply inline-block w-1.5 h-1.5 rounded-full mr-1.5;
+}
