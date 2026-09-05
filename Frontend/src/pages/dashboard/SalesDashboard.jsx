@@ -93,8 +93,15 @@ export function SalesDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* App Title */}
-      <h1 className="text-3xl font-bold text-slate-900 tracking-tight">DealFlow360</h1>
+      {/* App Title & Brand */}
+      <div className="flex items-center gap-3">
+        <img
+          src="/logo.png"
+          alt="DealFlow360"
+          className="h-10 w-10 object-contain rounded-xl shadow-2xs border border-slate-200 bg-white"
+        />
+        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">DealFlow360</h1>
+      </div>
 
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

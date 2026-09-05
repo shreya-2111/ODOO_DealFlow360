@@ -64,7 +64,7 @@ export function Header({ onToggleSidebar }) {
 
   return (
     <header className="sticky top-0 z-30 h-16 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-4 lg:px-6 flex items-center justify-between gap-4">
-      {/* Left: Mobile Toggle + Breadcrumb & Page Title */}
+      {/* Left: Mobile Toggle + Logo + Breadcrumb & Page Title */}
       <div className="flex items-center gap-3 min-w-0">
         <button
           onClick={onToggleSidebar}
@@ -72,6 +72,12 @@ export function Header({ onToggleSidebar }) {
         >
           <Menu className="w-5 h-5" />
         </button>
+
+        <img
+          src="/logo.png"
+          alt="DealFlow360"
+          className="h-8 w-8 object-contain rounded-lg lg:hidden shrink-0 border border-slate-100 bg-white"
+        />
 
         <div className="min-w-0">
           <div className="hidden sm:flex items-center gap-1 text-[11px] font-medium text-slate-400">

@@ -179,6 +179,11 @@ export function ApprovalDetail() {
           >
             Approvals Queue
           </Button>
+          <img
+            src="/logo.png"
+            alt="DealFlow360"
+            className="h-10 w-10 object-contain rounded-xl border border-slate-200 bg-white shadow-2xs hidden sm:block"
+          />
           <div>
             <div className="flex items-center gap-2.5">
               <h1 className="text-xl font-bold text-slate-900 font-mono">{quote.id}</h1>
