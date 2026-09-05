@@ -409,6 +409,7 @@ export function DataProvider({ children }) {
         products,
         warehouses,
         fulfillmentSplits,
+        fulfillmentOrders: fulfillmentSplits,
         subscriptions,
         dealHealth,
         governanceRules,

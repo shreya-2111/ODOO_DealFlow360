@@ -21,25 +21,38 @@ import {
 
 export function SalesDashboard() {
   const navigate = useNavigate();
-  const { quotations, fulfillmentOrders, subscriptions, dealHealth, calculateQuoteFinancials } = useData();
-  const { currentUser } = useAuth();
+  const {
+    quotations = [],
+    fulfillmentOrders = [],
+    fulfillmentSplits = [],
+    subscriptions = [],
+    dealHealth = {},
+    calculateQuoteFinancials
+  } = useData() || {};
+
+  const { currentUser = { name: 'Amit Sharma', role: 'Sales Representative' } } = useAuth() || {};
+
+  const safeQuotations = quotations || [];
+  const safeOrders = (fulfillmentOrders && fulfillmentOrders.length > 0) ? fulfillmentOrders : (fulfillmentSplits || []);
+  const safeSubscriptions = subscriptions || [];
 
   // Financial aggregates in INR
-  const totalPipeline = quotations.reduce((acc, q) => {
-    const fin = calculateQuoteFinancials(q.items, q.customerTier);
-    return acc + fin.totalAmount;
+  const totalPipeline = safeQuotations.reduce((acc, q) => {
+    if (!calculateQuoteFinancials) return acc;
+    const fin = calculateQuoteFinancials(q.items || [], q.customerTier);
+    return acc + (fin?.totalAmount || 0);
   }, 0);
 
-  const pendingApprovals = quotations.filter((q) => q.status === 'Pending Approval');
-  const highRiskApprovals = pendingApprovals.filter((q) => q.riskLevel === 'HIGH');
-  const activeSubscriptionsMrr = subscriptions.reduce((acc, s) => acc + (s.status === 'Active' ? s.mrr : 0), 0);
-  const pendingOrders = fulfillmentOrders.filter((f) => f.status !== 'Dispatched');
+  const pendingApprovals = safeQuotations.filter((q) => q.status === 'Pending Approval' || q.stage === 'Pending Approval');
+  const highRiskApprovals = pendingApprovals.filter((q) => q.riskLevel === 'HIGH' || (q.riskScore && q.riskScore >= 70));
+  const activeSubscriptionsMrr = safeSubscriptions.reduce((acc, s) => acc + (s.status === 'Active' ? (s.recurringPrice || s.mrr || 0) : 0), 0);
+  const pendingOrders = safeOrders.filter((f) => f.status !== 'Dispatched');
 
   const stats = [
     {
       title: 'Active Deal Pipeline',
       value: `₹${(totalPipeline / 100000).toFixed(2)} Lakh`,
-      detail: `${quotations.length} active opportunities (₹${Math.round(totalPipeline).toLocaleString('en-IN')})`,
+      detail: `${safeQuotations.length} active opportunities (₹${Math.round(totalPipeline).toLocaleString('en-IN')})`,
       icon: IndianRupee,
       iconColor: 'text-brand-600 bg-brand-50',
       change: '+14.2% vs last month',
@@ -59,7 +72,7 @@ export function SalesDashboard() {
     {
       title: 'Monthly Recurring (MRR)',
       value: `₹${Math.round(activeSubscriptionsMrr).toLocaleString('en-IN')}`,
-      detail: `${subscriptions.length} active AMC/Cloud accounts`,
+      detail: `${safeSubscriptions.length} active AMC/Cloud accounts`,
       icon: Repeat,
       iconColor: 'text-emerald-600 bg-emerald-50',
       change: '99.4% retention rate',
@@ -80,15 +93,18 @@ export function SalesDashboard() {
 
   return (
     <div className="space-y-6">
+      {/* App Title */}
+      <h1 className="text-3xl font-bold text-slate-900 tracking-tight">DealFlow360</h1>
+
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
-              Welcome back, {currentUser.name}
-            </h1>
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900">
+              Welcome back, {currentUser?.name}
+            </h2>
             <span className="text-xs px-2 py-0.5 rounded-md bg-brand-50 text-brand-700 font-semibold border border-brand-200 hidden sm:inline-block">
-              {currentUser.role}
+              {currentUser?.role}
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-1">
@@ -191,12 +207,15 @@ export function SalesDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {quotations.map((quote) => {
-                    const fin = calculateQuoteFinancials(quote.items, quote.customerTier);
-                    const isPending = quote.status === 'Pending Approval';
-                    const isDraft = quote.status === 'Draft';
-                    const isApproved = quote.status === 'Approved';
-                    const isConfirmed = quote.status === 'Confirmed';
+                  {safeQuotations.map((quote) => {
+                    const fin = calculateQuoteFinancials
+                      ? calculateQuoteFinancials(quote.items || [], quote.customerTier)
+                      : { totalAmount: 0 };
+
+                    const currentStage = quote.stage || quote.status || 'Draft';
+                    const isPending = currentStage === 'Pending Approval';
+                    const isApproved = currentStage === 'Approved';
+                    const isConfirmed = currentStage === 'Confirmed';
 
                     const statusVariant = isConfirmed
                       ? 'success'
@@ -206,10 +225,11 @@ export function SalesDashboard() {
                       ? 'warning'
                       : 'default';
 
+                    const riskLevel = quote.riskLevel || (quote.riskScore >= 70 ? 'HIGH' : quote.riskScore >= 40 ? 'MEDIUM' : 'LOW');
                     const riskVariant =
-                      quote.riskLevel === 'HIGH'
+                      riskLevel === 'HIGH'
                         ? 'danger'
-                        : quote.riskLevel === 'MEDIUM'
+                        : riskLevel === 'MEDIUM'
                         ? 'warning'
                         : 'success';
 
@@ -221,26 +241,26 @@ export function SalesDashboard() {
                       >
                         <td className="px-5 py-3.5">
                           <div className="font-semibold text-slate-900 group-hover:text-brand-600 transition-colors">
-                            {quote.customerName}
+                            {quote.customerName || quote.customer}
                           </div>
                           <div className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-2">
                             <span>{quote.id}</span>
                             <span>•</span>
-                            <span>{quote.contactPerson}</span>
+                            <span>{quote.contactPerson || quote.contactEmail}</span>
                           </div>
                         </td>
                         <td className="px-4 py-3.5">
                           <Badge variant={statusVariant} size="sm" dot>
-                            {quote.status}
+                            {currentStage}
                           </Badge>
                         </td>
                         <td className="px-4 py-3.5">
                           <Badge variant={riskVariant} size="sm">
-                            {quote.riskLevel} RISK
+                            {riskLevel} RISK
                           </Badge>
                         </td>
                         <td className="px-4 py-3.5 text-right font-bold text-slate-900">
-                          ₹{Math.round(fin.totalAmount).toLocaleString('en-IN')}
+                          ₹{Math.round(fin?.totalAmount || 0).toLocaleString('en-IN')}
                         </td>
                         <td className="px-5 py-3.5 text-right">
                           <Button
@@ -266,7 +286,7 @@ export function SalesDashboard() {
           <Card>
             <CardHeader
               title="Indian Regional Warehouses & Inventory Health"
-              description="Stock distribution across Mumbai, Bengaluru, and Delhi-NCR mega-hubs"
+              description="Stock distribution across Mumbai, Ahmedabad, Bengaluru, and Delhi-NCR hubs"
               action={
                 <Button
                   variant="ghost"
@@ -329,12 +349,12 @@ export function SalesDashboard() {
                     <Badge variant="danger" size="sm">Breach Alert</Badge>
                     <span className="text-[10px] text-slate-400 font-medium">{hr.id}</span>
                   </div>
-                  <div className="mt-2 text-xs font-bold text-slate-900">{hr.customerName}</div>
+                  <div className="mt-2 text-xs font-bold text-slate-900">{hr.customerName || hr.customer}</div>
                   <p className="text-[11px] text-amber-800 mt-1 line-clamp-2">
-                    {hr.discountBreachSummary}
+                    {hr.discountBreachSummary || `${hr.approvalStatus || 'Approval Required'} (Risk Score: ${hr.riskScore || 75})`}
                   </p>
                   <div className="mt-3 flex items-center justify-between text-[11px] pt-2 border-t border-slate-100">
-                    <span className="text-slate-500">Rep: {hr.salesRep}</span>
+                    <span className="text-slate-500">Rep: {hr.salesRep || 'Sales Rep'}</span>
                     <span className="font-semibold text-brand-600 flex items-center gap-0.5">
                       Review <ArrowRight className="w-3 h-3" />
                     </span>
@@ -382,20 +402,20 @@ export function SalesDashboard() {
               }
             />
             <CardContent className="p-5 pt-0 space-y-3">
-              {dealHealth.slice(0, 2).map((item) => (
+              {((dealHealth?.stalledDeals) || []).slice(0, 2).map((item) => (
                 <div
                   key={item.id}
                   className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-semibold text-slate-900 truncate">{item.customerName}</span>
-                    <Badge variant={item.severity === 'High' ? 'danger' : 'warning'} size="sm">
-                      {item.severity} Risk
+                    <span className="font-semibold text-slate-900 truncate">{item.customer || item.customerName}</span>
+                    <Badge variant="warning" size="sm">
+                      {item.daysStalled ? `${item.daysStalled}d Stalled` : 'Anomaly'}
                     </Badge>
                   </div>
-                  <p className="text-[11px] text-slate-600 mt-1">{item.riskType}</p>
+                  <p className="text-[11px] text-slate-600 mt-1">{item.anomaly || 'Deal requires review.'}</p>
                   <div className="mt-2 text-[10px] text-slate-400 bg-white p-2 rounded border border-slate-100">
-                    💡 <span className="font-medium text-slate-700">Recommended:</span> {item.suggestedAction}
+                    💡 <span className="font-medium text-slate-700">Owner:</span> {item.owner || 'Sales Rep'} ({item.quote || item.id})
                   </div>
                 </div>
               ))}
