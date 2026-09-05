@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import logoImg from '../../assets/logo.png';
 import { Button } from '../../components/ui/Button';
 import { Card, CardContent } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
@@ -83,7 +84,7 @@ export function LoginSignup() {
       {/* Brand Logo & Title */}
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
         <img
-          src="/logo.png"
+          src={logoImg}
           alt="DealFlow360 Logo"
           className="h-16 w-auto object-contain mx-auto mb-3 drop-shadow-sm rounded-xl"
         />

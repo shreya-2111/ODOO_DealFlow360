@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import logoImg from '../../assets/logo.png';
 
 export function Header({ onToggleSidebar }) {
   const location = useLocation();
@@ -74,7 +75,7 @@ export function Header({ onToggleSidebar }) {
         </button>
 
         <img
-          src="/logo.png"
+          src={logoImg}
           alt="DealFlow360"
           className="h-8 w-8 object-contain rounded-lg lg:hidden shrink-0 border border-slate-100 bg-white"
         />

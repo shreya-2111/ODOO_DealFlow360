@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import logoImg from '../../assets/logo.png';
 import { Card, CardHeader, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -149,7 +150,7 @@ export function CustomerPortal() {
         <div>
           <div className="flex items-center gap-2.5">
             <img
-              src="/logo.png"
+              src={logoImg}
               alt="DealFlow360"
               className="h-8 w-8 object-contain rounded-lg border border-slate-100 bg-white"
             />

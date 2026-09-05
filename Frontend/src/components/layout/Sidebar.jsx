@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
+import logoImg from '../../assets/logo.png';
 
 export function Sidebar({ isOpen, onClose }) {
   const location = useLocation();
@@ -116,7 +117,7 @@ export function Sidebar({ isOpen, onClose }) {
         <div className="h-16 px-5 flex items-center justify-between border-b border-slate-100">
           <div className="flex items-center gap-2.5">
             <img
-              src="/logo.png"
+              src={logoImg}
               alt="DealFlow360"
               className="h-9 w-9 object-contain rounded-lg shadow-2xs border border-slate-100 bg-white"
             />

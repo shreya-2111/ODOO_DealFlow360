@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import logoImg from '../../assets/logo.png';
 import { Card, CardHeader, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -196,7 +197,7 @@ export function QuotationDetail() {
             Quotations
           </Button>
           <img
-            src="/logo.png"
+            src={logoImg}
             alt="DealFlow360"
             className="h-10 w-10 object-contain rounded-xl border border-slate-200 bg-white shadow-2xs hidden sm:block"
           />

@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
+import logoImg from '../../assets/logo.png';
 import { Card, CardHeader, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -96,7 +97,7 @@ export function SalesDashboard() {
       {/* App Title & Brand */}
       <div className="flex items-center gap-3">
         <img
-          src="/logo.png"
+          src={logoImg}
           alt="DealFlow360"
           className="h-10 w-10 object-contain rounded-xl shadow-2xs border border-slate-200 bg-white"
         />
