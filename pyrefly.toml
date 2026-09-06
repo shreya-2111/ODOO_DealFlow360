@@ -1,0 +1,8 @@
+preset = "basic"
+python-interpreter-path = "backend/venv/Scripts/python.exe"
+search-path = ["backend"]
+project-excludes = [
+    "**/tests.py",
+    "**/verify_*.py",
+    "**/migrations/*",
+]

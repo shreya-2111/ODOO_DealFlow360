@@ -6,18 +6,27 @@ import { useToast } from '../../context/ToastContext';
 import { Card, CardHeader, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
-import { TextArea } from '../../components/ui/Input';
+import { Input, Select, TextArea } from '../../components/ui/Input';
+import { Modal } from '../../components/ui/Modal';
 import {
   ArrowLeft,
   Plus,
   Minus,
   Trash2,
   AlertTriangle,
+  CheckCircle2,
   Send,
   Sparkles,
+  ShieldAlert,
+  IndianRupee,
+  TrendingUp,
   Search,
+  Filter,
+  Check,
   X,
+  Package,
   Truck,
+  FileCheck,
   ExternalLink
 } from 'lucide-react';
 
@@ -33,7 +42,7 @@ export function QuotationDetail() {
     upsellSuggestions,
     governanceRules
   } = useData();
-  const { currentUser } = useAuth();
+  const { currentUser, isCustomer } = useAuth();
   const { addToast } = useToast();
 
   const quote = quotations.find((q) => q.id === id);
@@ -117,7 +126,7 @@ export function QuotationDetail() {
       addToast(`Increased ${product.name} quantity to ${existing.quantity + 1}`, 'success');
     } else {
       const newLine = {
-        id: `item-${items.length + 1}-${product.id}`,
+        id: `item-${Date.now()}`,
         productId: product.id,
         name: product.name,
         sku: product.sku,
@@ -140,7 +149,6 @@ export function QuotationDetail() {
   // Attach Upsell Recommendation
   const handleAttachUpsell = (upsell) => {
     const prd = products.find((p) => p.id === upsell.productId) || products[0];
-    if (!prd) return;
     handleAddToCart(prd);
     setDismissedUpsells((prev) => [...prev, upsell.id]);
     addToast(`Attached recommended upsell: ${upsell.name}! Margin booster updated.`, 'success');

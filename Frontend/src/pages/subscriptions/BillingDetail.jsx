@@ -6,33 +6,39 @@ import { Card, CardHeader, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
-import { Input } from '../../components/ui/Input';
+import { Input, Select } from '../../components/ui/Input';
 import {
   ArrowLeft,
   Repeat,
   Package,
+  Calendar,
+  CreditCard,
   CheckCircle2,
+  Clock,
   Pause,
   Play,
+  ArrowUpRight,
+  ShieldCheck,
   Receipt,
+  FileText,
   Sliders,
+  AlertCircle,
   XCircle
 } from 'lucide-react';
 
 export function BillingDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { subscriptions = [] } = useData() || {};
+  const { subscriptions } = useData();
   const { addToast } = useToast();
 
-  const safeSubs = subscriptions || [];
-  const sub = safeSubs.find((s) => s.id === id);
+  const sub = subscriptions.find((s) => s.id === id);
 
   const [isPauseModalOpen, setIsPauseModalOpen] = useState(false);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [isProrationModalOpen, setIsProrationModalOpen] = useState(false);
 
-  // Mid-cycle quantity modification state
+  // Mid-cycle quantity modification state (Requirement 14)
   const [currentSeats, setCurrentSeats] = useState(50);
   const [newSeats, setNewSeats] = useState(75);
   const [pricePerSeat] = useState(1500); // e.g. ₹1,500/seat/mo
@@ -51,13 +57,7 @@ export function BillingDetail() {
     );
   }
 
-  const customerDisplay = sub.customer || sub.customerName || 'Enterprise Account';
-  const mrrRate = sub.mrr || sub.recurringPrice || (currentSeats * pricePerSeat);
-  const arrRate = sub.arr || mrrRate * 12;
-  const billingScheduleList = sub.billingSchedule || sub.recurringSchedule || [];
-  const oneTimeItemsList = sub.oneTimeItems || sub.oneTimeItemsDelivered || [];
-
-  // Mid-cycle Proration Calculations
+  // Mid-cycle Proration Calculations (Requirement 14)
   const previousMonthlyAmount = currentSeats * pricePerSeat;
   const newMonthlyAmount = newSeats * pricePerSeat;
   const seatDelta = newSeats - currentSeats;
@@ -112,16 +112,16 @@ export function BillingDetail() {
                 {sub.status}
               </Badge>
               <span className="text-xs px-2 py-0.5 rounded bg-brand-50 text-brand-700 font-semibold">
-                {sub.billingCadence || 'Monthly'} Cadence
+                {sub.billingCadence} Cadence
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              Customer: <strong className="text-slate-800">{customerDisplay}</strong> • Plan: {sub.planName}
+              Customer: <strong className="text-slate-800">{sub.customerName}</strong> • Plan: {sub.planName}
             </p>
           </div>
         </div>
 
-        {/* Action Buttons */}
+        {/* Action Buttons (Requirement 14) */}
         <div className="flex flex-wrap items-center gap-2">
           <Button
             variant="secondary"
@@ -156,7 +156,7 @@ export function BillingDetail() {
           <CardContent className="p-4">
             <span className="text-[11px] font-semibold text-slate-400 uppercase">Monthly Rate (MRR)</span>
             <div className="text-xl font-bold text-slate-900 mt-1">
-              ₹{Math.round(mrrRate).toLocaleString('en-IN')}
+              ₹{Math.round(sub.mrr).toLocaleString('en-IN')}
             </div>
           </CardContent>
         </Card>
@@ -164,14 +164,14 @@ export function BillingDetail() {
           <CardContent className="p-4">
             <span className="text-[11px] font-semibold text-slate-400 uppercase">Annual Contract Value (ARR)</span>
             <div className="text-xl font-bold text-brand-700 mt-1">
-              ₹{Math.round(arrRate).toLocaleString('en-IN')}
+              ₹{Math.round(sub.arr).toLocaleString('en-IN')}
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <span className="text-[11px] font-semibold text-slate-400 uppercase">Renewal Date</span>
-            <div className="text-xl font-bold text-slate-900 mt-1">{sub.renewalDate || sub.nextBillingDate}</div>
+            <span className="text-[11px] font-semibold text-slate-400 uppercase">Next Billing Date</span>
+            <div className="text-xl font-bold text-slate-900 mt-1">{sub.renewalDate}</div>
           </CardContent>
         </Card>
         <Card>
@@ -182,7 +182,7 @@ export function BillingDetail() {
         </Card>
       </div>
 
-      {/* Two Clear Separated Sections: ONE-TIME ITEMS and RECURRING ITEMS */}
+      {/* Two Clear Separated Sections: ONE-TIME ITEMS and RECURRING ITEMS (Requirement 14) */}
       <div className="space-y-6">
         {/* Section 1: ONE-TIME ITEMS */}
         <Card>
@@ -201,21 +201,21 @@ export function BillingDetail() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {oneTimeItemsList.length > 0 ? (
-                  oneTimeItemsList.map((item, idx) => (
+                {sub.oneTimeItemsDelivered && sub.oneTimeItemsDelivered.length > 0 ? (
+                  sub.oneTimeItemsDelivered.map((item, idx) => (
                     <tr key={idx} className="hover:bg-slate-50/70">
                       <td className="px-5 py-3.5 font-semibold text-slate-900 flex items-center gap-2">
                         <Package className="w-4 h-4 text-brand-600" />
                         <span>{item.name}</span>
                       </td>
-                      <td className="px-4 py-3.5 text-slate-600">{item.deliveredDate || item.deliveredOn || 'Delivered'}</td>
+                      <td className="px-4 py-3.5 text-slate-600">{item.deliveredOn}</td>
                       <td className="px-4 py-3.5">
                         <Badge variant="success" size="sm" dot>
                           Reconciled & Invoiced
                         </Badge>
                       </td>
                       <td className="px-5 py-3.5 text-right font-bold text-slate-900">
-                        ₹{(item.total || 0).toLocaleString('en-IN')}
+                        ₹{item.total.toLocaleString('en-IN')}
                       </td>
                     </tr>
                   ))
@@ -257,9 +257,9 @@ export function BillingDetail() {
                     <span>{sub.planName}</span>
                   </td>
                   <td className="px-4 py-3.5 text-center font-bold text-slate-900">{currentSeats} Seats</td>
-                  <td className="px-4 py-3.5 text-slate-700 capitalize">{sub.billingCadence || 'Monthly'}</td>
+                  <td className="px-4 py-3.5 text-slate-700 capitalize">{sub.billingCadence}</td>
                   <td className="px-4 py-3.5 text-slate-700">₹{pricePerSeat.toLocaleString('en-IN')} / seat</td>
-                  <td className="px-4 py-3.5 text-brand-700 font-semibold">{sub.renewalDate || sub.nextBillingDate}</td>
+                  <td className="px-4 py-3.5 text-brand-700 font-semibold">{sub.renewalDate}</td>
                   <td className="px-4 py-3.5">
                     <Badge variant={sub.status === 'Active' ? 'success' : 'warning'} size="sm" dot>
                       {sub.status}
@@ -273,13 +273,13 @@ export function BillingDetail() {
             </table>
           </div>
 
-          {/* Billing Schedule */}
+          {/* Billing Schedule: Current Period, Next Invoice, Future Invoices */}
           <div className="p-5 border-t border-slate-200 bg-slate-50/50 space-y-3">
             <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
               Upcoming Invoicing Schedule
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              {billingScheduleList.map((cycle, idx) => (
+              {sub.recurringSchedule.map((cycle, idx) => (
                 <div key={idx} className="p-3.5 bg-white rounded-xl border border-slate-200 shadow-2xs space-y-1">
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-bold text-slate-900">{cycle.period}</span>
@@ -291,7 +291,7 @@ export function BillingDetail() {
                     Ref: {cycle.invoiceId || 'Scheduled in Queue'}
                   </div>
                   <div className="text-sm font-black text-brand-700 pt-1">
-                    ₹{(cycle.amount || 0).toLocaleString('en-IN')}
+                    ₹{cycle.amount.toLocaleString('en-IN')}
                   </div>
                 </div>
               ))}
@@ -300,7 +300,7 @@ export function BillingDetail() {
         </Card>
       </div>
 
-      {/* MID-CYCLE PRORATION SUMMARY MODAL */}
+      {/* MID-CYCLE PRORATION SUMMARY MODAL (Requirement 14) */}
       <Modal
         isOpen={isProrationModalOpen}
         onClose={() => setIsProrationModalOpen(false)}
@@ -349,6 +349,7 @@ export function BillingDetail() {
             </div>
           </div>
 
+          {/* PRORATION SUMMARY CARD (Requirement 14) */}
           <div className="p-4 rounded-xl border border-brand-200 bg-brand-50/40 space-y-2">
             <h4 className="font-bold text-brand-950 text-xs uppercase tracking-wider flex items-center gap-1.5">
               <Receipt className="w-4 h-4 text-brand-600" /> Proration Summary (INR ₹)
@@ -404,7 +405,7 @@ export function BillingDetail() {
         }
       >
         <p className="text-xs text-slate-600">
-          Pausing this agreement will suspend upcoming invoice cycles for <strong>{customerDisplay}</strong> while keeping their account configuration preserved in the system.
+          Pausing this agreement will suspend upcoming invoice cycles for <strong>{sub.customerName}</strong> while keeping their account configuration preserved in the system.
         </p>
       </Modal>
 
@@ -426,7 +427,7 @@ export function BillingDetail() {
         }
       >
         <p className="text-xs text-slate-600">
-          Are you sure you want to cancel the subscription for <strong>{customerDisplay}</strong>? All automated monthly recurring renewals will end at the conclusion of the current period.
+          Are you sure you want to cancel the subscription for <strong>{sub.customerName}</strong>? All automated monthly recurring renewals will end at the conclusion of the current period.
         </p>
       </Modal>
     </div>

@@ -13,7 +13,18 @@ import {
   CheckCircle2,
   XCircle,
   RotateCcw,
-  FileSpreadsheet
+  AlertTriangle,
+  FileSpreadsheet,
+  ShieldCheck,
+  Building,
+  User,
+  Clock,
+  ExternalLink,
+  IndianRupee,
+  Check,
+  X,
+  Send,
+  Sparkles
 } from 'lucide-react';
 
 export function ApprovalDetail() {

@@ -1,5 +1,4 @@
 import React, { useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 export function Modal({
@@ -10,7 +9,7 @@ export function Modal({
   children,
   maxWidth = 'max-w-lg',
   footer,
-}) { 
+}) {
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' && isOpen) {
@@ -23,7 +22,7 @@ export function Modal({
 
   if (!isOpen) return null;
 
-  return createPortal(
+  return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       {/* Backdrop */}
       <div
@@ -62,7 +61,6 @@ export function Modal({
           )}
         </div>
       </div>
-    </div>,
-    document.body
+    </div>
   );
 }

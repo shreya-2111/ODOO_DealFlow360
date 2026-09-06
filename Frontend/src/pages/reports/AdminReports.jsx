@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
 import { Card, CardHeader, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
+import { Badge } from '../../components/ui/Badge';
 import {
   ResponsiveContainer,
   BarChart,
@@ -20,14 +22,22 @@ import {
   Legend
 } from 'recharts';
 import {
+  BarChart3,
+  TrendingUp,
+  Clock,
+  IndianRupee,
   Download,
   Calendar,
+  Layers,
+  Sparkles,
+  Filter,
   Users,
   CheckSquare,
   Package
 } from 'lucide-react';
 
 export function AdminReports() {
+  const { quotations, products } = useData();
   const { addToast } = useToast();
 
   // Filters (Requirement 18)

@@ -4,30 +4,31 @@ import {
   LayoutDashboard,
   FileSpreadsheet,
   Kanban,
+  Users,
   Truck,
   Repeat,
   Activity,
   BarChart3,
   Sliders,
   Globe,
-  CheckSquare
+  CheckSquare,
+  Package,
+  Layers,
+  ShieldCheck
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
-import logoImg from '../../assets/logo.png';
 
-// Dynamic sidebar navigation adapting items and badges based on the active role
 export function Sidebar({ isOpen, onClose }) {
   const location = useLocation();
-  const { currentUser, isSalesManager, isFinanceOps, isCustomer, isAdmin } = useAuth();
+  const { currentUser, isSalesRep, isSalesManager, isFinanceOps, isCustomer, isAdmin } = useAuth();
   const { quotations, fulfillmentSplits, subscriptions, dealHealth } = useData();
 
-  // Dynamic badge counts based on live data
   const pendingApprovalsCount = quotations.filter((q) => q.stage === 'Pending Approval').length;
   const activeFulfillmentCount = fulfillmentSplits.filter((f) => f.status !== 'Ready to Ship').length;
   const atRiskCount = dealHealth.kpis.atRiskDeals;
 
-  // Build navigation sections dynamically based on logged-in role
+  // Build navigation dynamically based on logged in role
   const getNavItems = () => {
     if (isCustomer) {
       return [
@@ -42,7 +43,7 @@ export function Sidebar({ isOpen, onClose }) {
 
     const sections = [];
 
-    // Sales & CPQ navigation section
+    // Sales & CPQ
     const salesItems = [
       { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
       { name: 'Quotations', path: '/quotations', icon: FileSpreadsheet, badge: quotations.length },
@@ -61,7 +62,7 @@ export function Sidebar({ isOpen, onClose }) {
 
     sections.push({ title: 'Sales & Pipeline', items: salesItems });
 
-    // Operations & Revenue navigation section
+    // Operations & Revenue
     const opsItems = [];
     if (isFinanceOps || isSalesManager || isAdmin) {
       opsItems.push({
@@ -76,23 +77,20 @@ export function Sidebar({ isOpen, onClose }) {
 
     sections.push({ title: 'Operations & Billing', items: opsItems });
 
-    // Intelligence & Analytics navigation section
+    // Intelligence & Governance
     const intelItems = [
       { name: 'Deal Health', path: '/health', icon: Activity, badge: atRiskCount, badgeColor: 'bg-rose-100 text-rose-800' },
       { name: 'Analytics Reports', path: '/reports', icon: BarChart3 }
     ];
 
-    sections.push({ title: 'Intelligence & Analytics', items: intelItems });
-
-    // Platform Administration (Only for Admin persona)
-    if (isAdmin) {
-      sections.push({
-        title: 'Platform Administration',
-        items: [
-          { name: 'Admin Settings', path: '/settings', icon: Sliders }
-        ]
-      });
+    if (isAdmin || isSalesManager) {
+      intelItems.push({ name: 'Admin Settings', path: '/settings', icon: Sliders });
     }
+
+    // Quick Portal Preview
+    intelItems.push({ name: 'Customer Portal View', path: '/portal', icon: Globe, highlight: true });
+
+    sections.push({ title: 'Intelligence & Admin', items: intelItems });
 
     return sections;
   };
@@ -101,7 +99,7 @@ export function Sidebar({ isOpen, onClose }) {
 
   return (
     <>
-      {/* Mobile backdrop */}
+      {/* Mobile Backdrop */}
       {isOpen && (
         <div
           className="fixed inset-0 z-40 bg-slate-900/30 backdrop-blur-xs lg:hidden"
@@ -109,20 +107,17 @@ export function Sidebar({ isOpen, onClose }) {
         />
       )}
 
-      {/* Main navigation drawer */}
       <aside
         className={`fixed top-0 bottom-0 left-0 z-40 w-64 bg-white border-r border-slate-200/80 flex flex-col transition-transform duration-200 lg:translate-x-0 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        {/* Brand identity header */}
+        {/* Brand Header */}
         <div className="h-16 px-5 flex items-center justify-between border-b border-slate-100">
           <div className="flex items-center gap-2.5">
-            <img
-              src={logoImg}
-              alt="DealFlow360"
-              className="h-9 w-9 object-contain rounded-lg shadow-2xs border border-slate-100 bg-white"
-            />
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-600 to-indigo-700 flex items-center justify-center text-white shadow-sm font-black text-lg">
+              360
+            </div>
             <div>
               <div className="font-bold text-slate-900 text-base leading-none tracking-tight flex items-center gap-1">
                 DealFlow<span className="text-brand-600">360</span>
@@ -134,7 +129,7 @@ export function Sidebar({ isOpen, onClose }) {
           </div>
         </div>
 
-        {/* Scrollable menu items list */}
+        {/* Navigation List */}
         <div className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
           {navSections.map((section, idx) => (
             <div key={idx}>
@@ -178,7 +173,7 @@ export function Sidebar({ isOpen, onClose }) {
           ))}
         </div>
 
-        {/* Active persona status footer */}
+        {/* Active Role Indicator in Sidebar Footer */}
         <div className="p-3.5 border-t border-slate-100 bg-slate-50/70">
           <div className="flex items-center justify-between text-[11px] text-slate-500 mb-1">
             <span className="flex items-center gap-1.5 font-semibold text-slate-800">

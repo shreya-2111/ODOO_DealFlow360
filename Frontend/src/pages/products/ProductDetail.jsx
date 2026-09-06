@@ -9,9 +9,13 @@ import { Modal } from '../../components/ui/Modal';
 import { Input } from '../../components/ui/Input';
 import {
   ArrowLeft,
+  Package,
+  Layers,
   Globe,
   Plus,
-  IndianRupee
+  ShieldCheck,
+  IndianRupee,
+  TrendingUp
 } from 'lucide-react';
 
 export function ProductDetail() {
@@ -41,13 +45,18 @@ export function ProductDetail() {
   const categoryCeiling = governanceRules.categoryCeilings[product.category] || 15;
   const marginPct = product.basePrice > 0 ? (((product.basePrice - product.unitCost) / product.basePrice) * 100).toFixed(0) : 0;
 
-  // Add new variant specification and notify user
   const handleAddVariant = (e) => {
     e.preventDefault();
     if (!variantName) {
       addToast('Please provide a variant title', 'warning');
       return;
     }
+    product.variants.push({
+      id: `v-${Date.now()}`,
+      name: variantName,
+      sku: variantSku || `${product.sku}-VAR`,
+      priceDelta: Number(variantDelta)
+    });
     setIsAddVariantModalOpen(false);
     addToast(`Added variant ${variantName} to ${product.name}!`, 'success');
   };

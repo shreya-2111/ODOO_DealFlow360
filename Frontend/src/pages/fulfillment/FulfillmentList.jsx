@@ -1,14 +1,27 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../../context/DataContext';
-import { Card, CardContent } from '../../components/ui/Card';
+import { useAuth } from '../../context/AuthContext';
+import { Card, CardHeader, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
-import { ArrowRight, Search } from 'lucide-react';
+import {
+  Truck,
+  Building,
+  Package,
+  Layers,
+  ArrowRight,
+  CheckCircle2,
+  AlertTriangle,
+  Clock,
+  Search,
+  SlidersHorizontal
+} from 'lucide-react';
 
 export function FulfillmentList() {
   const navigate = useNavigate();
-  const { fulfillmentOrders, warehouses } = useData();
+  const { fulfillmentOrders, warehouses, products } = useData();
+  const { currentUser } = useAuth();
 
   const [activeTab, setActiveTab] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -20,17 +33,11 @@ export function FulfillmentList() {
       (activeTab === 'READY' && order.status === 'Ready to Ship') ||
       (activeTab === 'DISPATCHED' && order.status === 'Dispatched');
 
-    const idStr = (order.id || order.orderId || '').toLowerCase();
-    const custStr = (order.customer || order.customerName || '').toLowerCase();
-    const quoteStr = (order.quoteId || '').toLowerCase();
-    const destStr = (order.destination || '').toLowerCase();
-    const q = (searchQuery || '').toLowerCase();
-
     const matchesSearch =
-      idStr.includes(q) ||
-      custStr.includes(q) ||
-      quoteStr.includes(q) ||
-      destStr.includes(q);
+      order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      order.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      order.quoteId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      order.destination.toLowerCase().includes(searchQuery.toLowerCase());
 
     return matchesTab && matchesSearch;
   });
@@ -165,6 +172,7 @@ export function FulfillmentList() {
                 </tr>
               ) : (
                 filteredOrders.map((order) => {
+                  const isPending = order.status === 'Pending Allocation';
                   const isPartial = order.status === 'Partially Allocated';
                   const isReady = order.status === 'Ready to Ship';
                   const isDispatched = order.status === 'Dispatched';

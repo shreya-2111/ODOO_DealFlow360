@@ -2,45 +2,52 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import logoImg from '../../assets/logo.png';
 import { Button } from '../../components/ui/Button';
 import { Card, CardContent } from '../../components/ui/Card';
+import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
 import { Input } from '../../components/ui/Input';
-import { ShieldCheck, ArrowRight, Building, Lock, Mail, User } from 'lucide-react';
+import {
+  ShieldCheck,
+  ArrowRight,
+  Building,
+  CheckCircle2,
+  Lock,
+  Mail,
+  User,
+  KeyRound,
+  Sparkles,
+  HelpCircle
+} from 'lucide-react';
 
-// Authentication page supporting demo login, role selection, and workspace launch
 export function LoginSignup() {
-  const { roles, switchRole, setTenant } = useAuth();
+  const { roles, switchRole, tenant, setTenant } = useAuth();
   const { addToast } = useToast();
   const navigate = useNavigate();
 
-  // Local form states
   const [isRegisterMode, setIsRegisterMode] = useState(false);
-  const [selectedRole, setSelectedRole] = useState(roles[0]?.id || 'sales_rep');
-  const [fullName, setFullName] = useState(roles[0]?.name || 'Sales Representative');
-  const [tenantName, setLocalTenant] = useState('Enterprise Workspace');
-  const [email, setEmail] = useState('sales.rep@dealflow360.in');
+  const [selectedRole, setSelectedRole] = useState(roles[0].id);
+  const [fullName, setFullName] = useState('Amit Sharma');
+  const [tenantName, setLocalTenant] = useState('Tata & Reliance Enterprise Cloud');
+  const [email, setEmail] = useState('amit.sharma@dealflow360.in');
   const [password, setPassword] = useState('••••••••••••');
   const [confirmPassword, setConfirmPassword] = useState('••••••••••••');
   const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
 
-  // Update form defaults when switching persona demo cards
   const handleRoleChange = (roleId) => {
     setSelectedRole(roleId);
     const r = roles.find((role) => role.id === roleId);
     if (r) {
       setFullName(r.name);
-      if (roleId === 'sales_rep') setEmail('sales.rep@dealflow360.in');
-      else if (roleId === 'sales_manager') setEmail('sales.manager@dealflow360.in');
-      else if (roleId === 'finance_ops') setEmail('finance.controller@dealflow360.in');
-      else if (roleId === 'admin') setEmail('admin@dealflow360.in');
-      else if (roleId === 'customer') setEmail('customer@enterprise.in');
+      if (roleId === 'sales_rep') setEmail('amit.sharma@dealflow360.in');
+      else if (roleId === 'sales_manager') setEmail('priya.patel@dealflow360.in');
+      else if (roleId === 'finance_ops') setEmail('rajesh.verma@dealflow360.in');
+      else if (roleId === 'admin') setEmail('neha.gupta@dealflow360.in');
+      else if (roleId === 'customer') setEmail('v.malhotra@acmecorp.in');
     }
   };
 
-  // Authenticate user and route to role-specific starting view
   const handleSubmit = (e) => {
     e.preventDefault();
     if (isRegisterMode && password !== confirmPassword) {
@@ -65,7 +72,6 @@ export function LoginSignup() {
     }
   };
 
-  // Send simulated password reset link
   const handleForgotSubmit = (e) => {
     e.preventDefault();
     setIsForgotModalOpen(false);
@@ -74,13 +80,11 @@ export function LoginSignup() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-10 sm:px-6 lg:px-8">
-      {/* Brand logo & header */}
+      {/* Brand Logo & Title */}
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <img
-          src={logoImg}
-          alt="DealFlow360 Logo"
-          className="h-16 w-auto object-contain mx-auto mb-3 drop-shadow-sm rounded-xl"
-        />
+        <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-brand-600 text-white font-black text-2xl shadow-md mb-2">
+          360
+        </div>
         <h1 className="text-2xl font-bold tracking-tight text-slate-900">
           DealFlow<span className="text-brand-600">360</span>
         </h1>
@@ -89,10 +93,10 @@ export function LoginSignup() {
         </p>
       </div>
 
-      {/* Main credentials card */}
+      {/* Main Form Box */}
       <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-xl px-4">
         <Card className="border-slate-200/90 shadow-xl overflow-hidden">
-          {/* Sign In vs Sign Up toggle tabs */}
+          {/* Mode Switch Tabs: Login vs Sign Up */}
           <div className="flex border-b border-slate-200 bg-slate-50/70">
             <button
               type="button"
@@ -120,7 +124,7 @@ export function LoginSignup() {
 
           <CardContent className="p-6">
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Role selection dropdown */}
+              {/* Role Dropdown Selector */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5 flex items-center justify-between">
                   <span>Select User Role</span>
@@ -142,7 +146,7 @@ export function LoginSignup() {
                 </p>
               </div>
 
-              {/* Full name input for registration mode */}
+              {/* Full Name field (if Register) */}
               {isRegisterMode && (
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -159,10 +163,10 @@ export function LoginSignup() {
                       required
                     />
                   </div>
-                </div> 
+                </div>
               )}
 
-              {/* Organization name input */}
+              {/* Company */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Company / Organization
@@ -180,7 +184,7 @@ export function LoginSignup() {
                 </div>
               </div>
 
-              {/* Email address input */}
+              {/* Work Email */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Work Email Address
@@ -197,7 +201,7 @@ export function LoginSignup() {
                 </div>
               </div>
 
-              {/* Password credentials */}
+              {/* Password */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <div className="flex items-center justify-between mb-1">
@@ -251,7 +255,7 @@ export function LoginSignup() {
                 )}
               </div>
 
-              {/* Fast persona selection buttons */}
+              {/* Quick Persona 1-Click Picker */}
               <div className="pt-2 border-t border-slate-100">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-2">
                   Demo Fast-Switch Persona:
@@ -282,7 +286,7 @@ export function LoginSignup() {
                 </div>
               </div>
 
-              {/* Form submit action button */}
+              {/* Submit Button */}
               <div className="pt-2">
                 <Button
                   type="submit"
@@ -297,7 +301,7 @@ export function LoginSignup() {
             </form>
           </CardContent>
 
-          {/* Compliance & currency badge */}
+          {/* Security & Currency Footer */}
           <div className="bg-slate-50/90 px-6 py-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
             <span className="flex items-center gap-1.5">
               <ShieldCheck className="w-4 h-4 text-emerald-600" />
@@ -308,7 +312,7 @@ export function LoginSignup() {
         </Card>
       </div>
 
-      {/* Password recovery modal dialog */}
+      {/* Forgot Password Modal */}
       <Modal
         isOpen={isForgotModalOpen}
         onClose={() => setIsForgotModalOpen(false)}

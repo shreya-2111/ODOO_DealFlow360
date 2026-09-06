@@ -4,31 +4,31 @@ import { useData } from '../../context/DataContext';
 import { Card, CardHeader, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
-import { ArrowRight, Search } from 'lucide-react';
+import {
+  Repeat,
+  IndianRupee,
+  Calendar,
+  CreditCard,
+  ArrowRight,
+  Search,
+  CheckCircle2,
+  AlertCircle
+} from 'lucide-react';
 
 export function SubscriptionsList() {
   const navigate = useNavigate();
-  const { subscriptions = [] } = useData() || {};
+  const { subscriptions } = useData();
   const [searchQuery, setSearchQuery] = useState('');
 
-  const safeSubs = subscriptions || [];
+  const totalMrr = subscriptions.reduce((sum, s) => sum + (s.status === 'Active' ? s.mrr : 0), 0);
+  const totalArr = subscriptions.reduce((sum, s) => sum + (s.status === 'Active' ? s.arr : 0), 0);
 
-  const totalMrr = safeSubs.reduce(
-    (sum, s) => sum + (s.status === 'Active' ? (s.mrr || s.recurringPrice || 0) : 0),
-    0
+  const filteredSubs = subscriptions.filter(
+    (s) =>
+      s.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      s.planName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      s.id.toLowerCase().includes(searchQuery.toLowerCase())
   );
-  const totalArr = safeSubs.reduce(
-    (sum, s) => sum + (s.status === 'Active' ? (s.arr || (s.mrr || s.recurringPrice || 0) * 12) : 0),
-    0
-  );
-
-  const filteredSubs = safeSubs.filter((s) => {
-    const cust = (s.customer || s.customerName || '').toLowerCase();
-    const plan = (s.planName || s.plan || '').toLowerCase();
-    const id = (s.id || '').toLowerCase();
-    const query = (searchQuery || '').toLowerCase();
-    return cust.includes(query) || plan.includes(query) || id.includes(query);
-  });
 
   return (
     <div className="space-y-6">
@@ -70,7 +70,7 @@ export function SubscriptionsList() {
           <CardContent className="p-5">
             <span className="text-xs font-semibold text-slate-500">Upcoming Q3 Renewals</span>
             <div className="mt-2 text-2xl font-bold text-slate-900">
-              {safeSubs.filter((s) => s.status === 'Pending Renewal').length} Contracts
+              {subscriptions.filter((s) => s.status === 'Pending Renewal').length} Contracts
             </div>
             <p className="text-[11px] text-amber-700 font-semibold mt-1">Action required for renewal</p>
           </CardContent>
@@ -112,18 +112,8 @@ export function SubscriptionsList() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredSubs.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
-                    No subscription contracts found. Recurring agreements generated from closed deals will appear here.
-                  </td>
-                </tr>
-              ) : (
-                filteredSubs.map((sub) => {
+              {filteredSubs.map((sub) => {
                 const isActive = sub.status === 'Active';
-                const mrrRate = sub.mrr || sub.recurringPrice || 0;
-                const arrRate = sub.arr || mrrRate * 12;
-
                 return (
                   <tr
                     key={sub.id}
@@ -132,35 +122,35 @@ export function SubscriptionsList() {
                   >
                     <td className="px-5 py-4">
                       <div className="font-semibold text-slate-900 group-hover:text-brand-600 transition-colors">
-                        {sub.customer || sub.customerName}
+                        {sub.customerName}
                       </div>
                       <div className="text-[11px] text-slate-400 mt-0.5 font-mono">{sub.id}</div>
                     </td>
 
                     <td className="px-4 py-4">
                       <div className="font-medium text-slate-800">{sub.planName}</div>
-                      <div className="text-[11px] text-slate-400">{sub.paymentMethod || 'Net-30 Corporate'}</div>
+                      <div className="text-[11px] text-slate-400">{sub.paymentMethod}</div>
                     </td>
 
                     <td className="px-4 py-4">
                       <Badge variant="default" size="sm">
-                        {sub.billingCadence || 'Monthly'}
+                        {sub.billingCadence}
                       </Badge>
                     </td>
 
                     <td className="px-4 py-4 text-right">
                       <div className="font-bold text-slate-900 text-sm">
-                        ₹{Math.round(mrrRate).toLocaleString('en-IN')}/mo
+                        ₹{Math.round(sub.mrr).toLocaleString('en-IN')}/mo
                       </div>
                       <div className="text-[10px] text-slate-400">
-                        ARR: ₹{Math.round(arrRate).toLocaleString('en-IN')}
+                        ARR: ₹{Math.round(sub.arr).toLocaleString('en-IN')}
                       </div>
                     </td>
 
                     <td className="px-4 py-4">
-                      <div className="font-medium text-slate-700">{sub.renewalDate || sub.nextBillingDate}</div>
+                      <div className="font-medium text-slate-700">{sub.renewalDate}</div>
                       <div className="text-[10px] text-slate-400">
-                        {sub.autoRenew !== false ? 'Auto-renews enabled' : 'Manual renewal'}
+                        {sub.autoRenew ? 'Auto-renews enabled' : 'Manual renewal'}
                       </div>
                     </td>
 
@@ -186,7 +176,7 @@ export function SubscriptionsList() {
                     </td>
                   </tr>
                 );
-              }))}
+              })}
             </tbody>
           </table>
         </div>

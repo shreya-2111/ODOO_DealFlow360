@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
-import { Card } from '../../components/ui/Card';
+import { Card, CardHeader, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
@@ -15,12 +15,19 @@ import {
   Repeat,
   Plus,
   Edit2,
+  Trash2,
+  CheckCircle2,
+  AlertTriangle,
   Save,
-  Search
+  Layers,
+  Sparkles,
+  Search,
+  IndianRupee,
+  SlidersHorizontal
 } from 'lucide-react';
 
 export function GovernanceSettings() {
-  const { products, setProducts, warehouses } = useData();
+  const { products, setProducts, warehouses, setWarehouses, governanceRules, setGovernanceRules } = useData();
   const { addToast } = useToast();
 
   const [activeTab, setActiveTab] = useState('products');
@@ -40,11 +47,46 @@ export function GovernanceSettings() {
     description: ''
   });
 
-  // --- 2. Price Lists State (Empty for pure UI)
-  const [priceLists] = useState([]);
+  // --- 2. Price Lists State ---
+  const [priceLists, setPriceLists] = useState([
+    {
+      id: 'PL-ENT-INR',
+      name: 'Enterprise Strategic Price List (India)',
+      currency: 'INR (₹)',
+      segment: 'Enterprise Accounts (> ₹50L ACV)',
+      productCount: 8,
+      status: 'Active',
+      effectiveDate: '2026-04-01'
+    },
+    {
+      id: 'PL-MID-INR',
+      name: 'Commercial Mid-Market Price List',
+      currency: 'INR (₹)',
+      segment: 'Growth & Mid-Size Corporates',
+      productCount: 8,
+      status: 'Active',
+      effectiveDate: '2026-04-01'
+    },
+    {
+      id: 'PL-GOV-INR',
+      name: 'Public Sector & PSU Rate Card',
+      currency: 'INR (₹)',
+      segment: 'Govt / GeM Portal Registered',
+      productCount: 6,
+      status: 'Active',
+      effectiveDate: '2026-01-01'
+    }
+  ]);
+  const [isPriceListModalOpen, setIsPriceListModalOpen] = useState(false);
+  const [priceListForm, setPriceListForm] = useState({
+    name: '',
+    currency: 'INR',
+    segment: 'Enterprise Accounts',
+    effectiveDate: new Date().toISOString().substring(0, 10)
+  });
 
   // --- 3. Discount Tiers State ---
-  const [discountTiers] = useState([
+  const [discountTiers, setDiscountTiers] = useState([
     { id: 'T1', tier: 'Tier 1 — Standard Rep', minDiscount: 0, maxDiscount: 10, approvalRequired: 'No Approval Needed', approver: 'Self / Sales Rep' },
     { id: 'T2', tier: 'Tier 2 — Manager Gate', minDiscount: 10.1, maxDiscount: 20, approvalRequired: 'Sales Manager Approval', approver: 'Priya Patel (Sales Manager)' },
     { id: 'T3', tier: 'Tier 3 — Finance Exception', minDiscount: 20.1, maxDiscount: 35, approvalRequired: 'Finance & Controller Gate', approver: 'Rajesh Verma (Finance / Ops)' },
@@ -52,7 +94,7 @@ export function GovernanceSettings() {
   ]);
 
   // --- 4. Approval Chains State ---
-  const [approvalChains] = useState([
+  const [approvalChains, setApprovalChains] = useState([
     {
       id: 'AC-1',
       name: 'Standard Concession Chain (<20% Discount)',
@@ -76,8 +118,17 @@ export function GovernanceSettings() {
     }
   ]);
 
+  // --- 5. Warehouses State ---
+  const [isWarehouseModalOpen, setIsWarehouseModalOpen] = useState(false);
+  const [warehouseForm, setWarehouseForm] = useState({
+    name: '',
+    location: '',
+    stockCount: 500,
+    priority: 1
+  });
+
   // --- 6. Subscription Plans State ---
-  const [subscriptionPlans] = useState([
+  const [subscriptionPlans, setSubscriptionPlans] = useState([
     {
       id: 'PLAN-BI',
       name: 'Business Analytics & BI Suite',
@@ -141,7 +192,7 @@ export function GovernanceSettings() {
       addToast(`Product ${productForm.name} updated successfully!`, 'success');
     } else {
       const newPrd = {
-        id: `PRD-${products.length + 101}`,
+        id: `PRD-${Date.now()}`,
         ...productForm,
         margin: (((productForm.basePrice - productForm.unitCost) / productForm.basePrice) * 100).toFixed(1)
       };
@@ -247,42 +298,34 @@ export function GovernanceSettings() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {products.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="px-5 py-8 text-center text-slate-400">
-                        No products configured in catalog. Click "Add Product" above to create one.
-                      </td>
-                    </tr>
-                  ) : (
-                    products
-                      .filter((p) => p.name.toLowerCase().includes(productSearch.toLowerCase()) || p.sku.toLowerCase().includes(productSearch.toLowerCase()))
-                      .map((p) => (
-                        <tr key={p.id} className="hover:bg-slate-50/70">
-                          <td className="px-5 py-3.5 font-bold text-slate-900">{p.name}</td>
-                          <td className="px-4 py-3.5">
-                            <Badge variant="default" size="sm">{p.category}</Badge>
-                          </td>
-                          <td className="px-4 py-3.5 font-mono text-slate-600">{p.sku}</td>
-                          <td className="px-4 py-3.5 text-right font-black text-slate-900">
-                            ₹{p.basePrice?.toLocaleString('en-IN')}
-                          </td>
-                          <td className="px-4 py-3.5 text-right text-slate-600">
-                            ₹{p.unitCost?.toLocaleString('en-IN')}
-                          </td>
-                          <td className="px-4 py-3.5 text-center font-bold text-slate-800">{p.stock}</td>
-                          <td className="px-5 py-3.5 text-right">
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              icon={Edit2}
-                              onClick={() => handleEditProduct(p)}
-                            >
-                              Edit
-                            </Button>
-                          </td>
-                        </tr>
-                      ))
-                  )}
+                  {products
+                    .filter((p) => p.name.toLowerCase().includes(productSearch.toLowerCase()) || p.sku.toLowerCase().includes(productSearch.toLowerCase()))
+                    .map((p) => (
+                      <tr key={p.id} className="hover:bg-slate-50/70">
+                        <td className="px-5 py-3.5 font-bold text-slate-900">{p.name}</td>
+                        <td className="px-4 py-3.5">
+                          <Badge variant="default" size="sm">{p.category}</Badge>
+                        </td>
+                        <td className="px-4 py-3.5 font-mono text-slate-600">{p.sku}</td>
+                        <td className="px-4 py-3.5 text-right font-black text-slate-900">
+                          ₹{p.basePrice?.toLocaleString('en-IN')}
+                        </td>
+                        <td className="px-4 py-3.5 text-right text-slate-600">
+                          ₹{p.unitCost?.toLocaleString('en-IN')}
+                        </td>
+                        <td className="px-4 py-3.5 text-center font-bold text-slate-800">{p.stock}</td>
+                        <td className="px-5 py-3.5 text-right">
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            icon={Edit2}
+                            onClick={() => handleEditProduct(p)}
+                          >
+                            Edit
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
                 </tbody>
               </table>
             </div>
@@ -309,28 +352,22 @@ export function GovernanceSettings() {
               </Button>
             </div>
 
-            {priceLists.length === 0 ? (
-              <div className="p-8 text-center text-xs text-slate-400 border border-dashed border-slate-200 rounded-xl">
-                No custom price lists configured. Click "Create Price List" to establish pricing tiers.
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {priceLists.map((pl) => (
-                  <div key={pl.id} className="p-4 rounded-xl border border-slate-200 bg-white shadow-2xs space-y-2 text-xs">
-                    <div className="flex items-center justify-between">
-                      <Badge variant="brand" size="sm">{pl.currency}</Badge>
-                      <Badge variant="success" size="sm">{pl.status}</Badge>
-                    </div>
-                    <h4 className="font-bold text-slate-900 text-sm mt-1">{pl.name}</h4>
-                    <p className="text-slate-600 text-[11px]">Segment: {pl.segment}</p>
-                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-slate-500">
-                      <span>{pl.productCount} Products Configured</span>
-                      <span className="font-medium text-brand-700">Effective: {pl.effectiveDate}</span>
-                    </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {priceLists.map((pl) => (
+                <div key={pl.id} className="p-4 rounded-xl border border-slate-200 bg-white shadow-2xs space-y-2 text-xs">
+                  <div className="flex items-center justify-between">
+                    <Badge variant="brand" size="sm">{pl.currency}</Badge>
+                    <Badge variant="success" size="sm">{pl.status}</Badge>
                   </div>
-                ))}
-              </div>
-            )}
+                  <h4 className="font-bold text-slate-900 text-sm mt-1">{pl.name}</h4>
+                  <p className="text-slate-600 text-[11px]">Segment: {pl.segment}</p>
+                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-slate-500">
+                    <span>{pl.productCount} Products Configured</span>
+                    <span className="font-medium text-brand-700">Effective: {pl.effectiveDate}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

@@ -2,15 +2,20 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
-import { Card, CardContent } from '../../components/ui/Card';
+import { Card, CardHeader, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
 import { Input, Select, TextArea } from '../../components/ui/Input';
 import {
+  Package,
   Plus,
   Search,
-  ArrowRight
+  Filter,
+  ArrowRight,
+  Layers,
+  IndianRupee,
+  TrendingUp
 } from 'lucide-react';
 
 export function ProductCatalog() {
@@ -162,14 +167,7 @@ export function ProductCatalog() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredProducts.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
-                    No products in catalog. Click "Add New Product" above to configure your enterprise offerings.
-                  </td>
-                </tr>
-              ) : (
-                filteredProducts.map((p) => {
+              {filteredProducts.map((p) => {
                 const marginPct = p.basePrice > 0 ? (((p.basePrice - p.unitCost) / p.basePrice) * 100).toFixed(0) : 0;
 
                 return (
@@ -227,7 +225,7 @@ export function ProductCatalog() {
                     </td>
                   </tr>
                 );
-              }))}
+              })}
             </tbody>
           </table>
         </div>

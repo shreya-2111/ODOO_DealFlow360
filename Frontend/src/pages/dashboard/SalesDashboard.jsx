@@ -10,9 +10,13 @@ import {
   CheckSquare,
   Truck,
   Repeat,
+  AlertTriangle,
   ArrowUpRight,
   Plus,
-  ArrowRight
+  ArrowRight,
+  Building2,
+  Package,
+  Layers
 } from 'lucide-react';
 
 export function SalesDashboard() {
@@ -22,12 +26,11 @@ export function SalesDashboard() {
     fulfillmentOrders = [],
     fulfillmentSplits = [],
     subscriptions = [],
-    warehouses = [],
     dealHealth = {},
     calculateQuoteFinancials
   } = useData() || {};
 
-  const { currentUser = { name: 'Sales Representative', role: 'Sales Representative' } } = useAuth() || {};
+  const { currentUser = { name: 'Amit Sharma', role: 'Sales Representative' } } = useAuth() || {};
 
   const safeQuotations = quotations || [];
   const safeOrders = (fulfillmentOrders && fulfillmentOrders.length > 0) ? fulfillmentOrders : (fulfillmentSplits || []);
@@ -52,7 +55,7 @@ export function SalesDashboard() {
       detail: `${safeQuotations.length} active opportunities (₹${Math.round(totalPipeline).toLocaleString('en-IN')})`,
       icon: IndianRupee,
       iconColor: 'text-brand-600 bg-brand-50',
-      change: safeQuotations.length > 0 ? '+14.2% vs last month' : 'No pipeline deals',
+      change: '+14.2% vs last month',
       trend: 'up',
       onClick: () => navigate('/quotations'),
     },
@@ -62,17 +65,17 @@ export function SalesDashboard() {
       detail: `${highRiskApprovals.length} high-risk breach flags`,
       icon: CheckSquare,
       iconColor: 'text-amber-600 bg-amber-50',
-      change: highRiskApprovals.length > 0 ? 'Requires Signoff' : 'Queue Clear',
+      change: highRiskApprovals.length > 0 ? 'Requires VP Signoff' : 'On Track',
       trend: highRiskApprovals.length > 0 ? 'warn' : 'up',
       onClick: () => navigate('/approvals'),
     },
     {
       title: 'Monthly Recurring (MRR)',
       value: `₹${Math.round(activeSubscriptionsMrr).toLocaleString('en-IN')}`,
-      detail: `${safeSubscriptions.length} active recurring accounts`,
+      detail: `${safeSubscriptions.length} active AMC/Cloud accounts`,
       icon: Repeat,
       iconColor: 'text-emerald-600 bg-emerald-50',
-      change: safeSubscriptions.length > 0 ? 'Active contracts' : 'No active contracts',
+      change: '99.4% retention rate',
       trend: 'up',
       onClick: () => navigate('/subscriptions'),
     },
@@ -82,17 +85,20 @@ export function SalesDashboard() {
       detail: 'Multi-warehouse stock orders',
       icon: Truck,
       iconColor: 'text-blue-600 bg-blue-50',
-      change: pendingOrders.length > 0 ? `${pendingOrders.length} orders pending` : 'All orders dispatched',
-      trend: pendingOrders.length > 0 ? 'warn' : 'up',
+      change: '2 items backordered',
+      trend: 'warn',
       onClick: () => navigate('/fulfillment'),
     },
   ];
 
   return (
     <div className="space-y-6">
-      {/* Page Header */} 
+      {/* App Title */}
+      <h1 className="text-3xl font-bold text-slate-900 tracking-tight">DealFlow360</h1>
+
+      {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div> 
+        <div>
           <div className="flex items-center gap-2">
             <h2 className="text-xl sm:text-2xl font-bold text-slate-900">
               Welcome back, {currentUser?.name}
@@ -100,7 +106,7 @@ export function SalesDashboard() {
             <span className="text-xs px-2 py-0.5 rounded-md bg-brand-50 text-brand-700 font-semibold border border-brand-200 hidden sm:inline-block">
               {currentUser?.role}
             </span>
-          </div> 
+          </div>
           <p className="text-xs text-slate-500 mt-1">
             Real-time Deal CPQ, Multi-Warehouse Fulfillment & Governance Overview (INR ₹)
           </p>
@@ -201,84 +207,76 @@ export function SalesDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {safeQuotations.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="px-5 py-8 text-center text-slate-400">
-                        No active deal pipeline records. Click "New Quotation" above to create an opportunity.
-                      </td>
-                    </tr>
-                  ) : (
-                    safeQuotations.map((quote) => {
-                      const fin = calculateQuoteFinancials
-                        ? calculateQuoteFinancials(quote.items || [], quote.customerTier)
-                        : { totalAmount: 0 };
+                  {safeQuotations.map((quote) => {
+                    const fin = calculateQuoteFinancials
+                      ? calculateQuoteFinancials(quote.items || [], quote.customerTier)
+                      : { totalAmount: 0 };
 
-                      const currentStage = quote.stage || quote.status || 'Draft';
-                      const isPending = currentStage === 'Pending Approval';
-                      const isApproved = currentStage === 'Approved';
-                      const isConfirmed = currentStage === 'Confirmed';
+                    const currentStage = quote.stage || quote.status || 'Draft';
+                    const isPending = currentStage === 'Pending Approval';
+                    const isApproved = currentStage === 'Approved';
+                    const isConfirmed = currentStage === 'Confirmed';
 
-                      const statusVariant = isConfirmed
-                        ? 'success'
-                        : isApproved
-                        ? 'brand'
-                        : isPending
+                    const statusVariant = isConfirmed
+                      ? 'success'
+                      : isApproved
+                      ? 'brand'
+                      : isPending
+                      ? 'warning'
+                      : 'default';
+
+                    const riskLevel = quote.riskLevel || (quote.riskScore >= 70 ? 'HIGH' : quote.riskScore >= 40 ? 'MEDIUM' : 'LOW');
+                    const riskVariant =
+                      riskLevel === 'HIGH'
+                        ? 'danger'
+                        : riskLevel === 'MEDIUM'
                         ? 'warning'
-                        : 'default';
+                        : 'success';
 
-                      const riskLevel = quote.riskLevel || (quote.riskScore >= 70 ? 'HIGH' : quote.riskScore >= 40 ? 'MEDIUM' : 'LOW');
-                      const riskVariant =
-                        riskLevel === 'HIGH'
-                          ? 'danger'
-                          : riskLevel === 'MEDIUM'
-                          ? 'warning'
-                          : 'success';
-
-                      return (
-                        <tr
-                          key={quote.id}
-                          className="hover:bg-slate-50/70 transition-colors group cursor-pointer"
-                          onClick={() => navigate(`/quotations/${quote.id}`)}
-                        >
-                          <td className="px-5 py-3.5">
-                            <div className="font-semibold text-slate-900 group-hover:text-brand-600 transition-colors">
-                              {quote.customerName || quote.customer}
-                            </div>
-                            <div className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-2">
-                              <span>{quote.id}</span>
-                              <span>•</span>
-                              <span>{quote.contactPerson || quote.contactEmail}</span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3.5">
-                            <Badge variant={statusVariant} size="sm" dot>
-                              {currentStage}
-                            </Badge>
-                          </td>
-                          <td className="px-4 py-3.5">
-                            <Badge variant={riskVariant} size="sm">
-                              {riskLevel} RISK
-                            </Badge>
-                          </td>
-                          <td className="px-4 py-3.5 text-right font-bold text-slate-900">
-                            ₹{Math.round(fin?.totalAmount || 0).toLocaleString('en-IN')}
-                          </td>
-                          <td className="px-5 py-3.5 text-right">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                navigate(`/quotations/${quote.id}`);
-                              }}
-                            >
-                              Open CPQ
-                            </Button>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
+                    return (
+                      <tr
+                        key={quote.id}
+                        className="hover:bg-slate-50/70 transition-colors group cursor-pointer"
+                        onClick={() => navigate(`/quotations/${quote.id}`)}
+                      >
+                        <td className="px-5 py-3.5">
+                          <div className="font-semibold text-slate-900 group-hover:text-brand-600 transition-colors">
+                            {quote.customerName || quote.customer}
+                          </div>
+                          <div className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-2">
+                            <span>{quote.id}</span>
+                            <span>•</span>
+                            <span>{quote.contactPerson || quote.contactEmail}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <Badge variant={statusVariant} size="sm" dot>
+                            {currentStage}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <Badge variant={riskVariant} size="sm">
+                            {riskLevel} RISK
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3.5 text-right font-bold text-slate-900">
+                          ₹{Math.round(fin?.totalAmount || 0).toLocaleString('en-IN')}
+                        </td>
+                        <td className="px-5 py-3.5 text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/quotations/${quote.id}`);
+                            }}
+                          >
+                            Open CPQ
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -288,7 +286,7 @@ export function SalesDashboard() {
           <Card>
             <CardHeader
               title="Indian Regional Warehouses & Inventory Health"
-              description="Stock distribution across regional distribution centers and hubs"
+              description="Stock distribution across Mumbai, Ahmedabad, Bengaluru, and Delhi-NCR hubs"
               action={
                 <Button
                   variant="ghost"
@@ -302,24 +300,32 @@ export function SalesDashboard() {
               }
             />
             <CardContent className="p-5">
-              {warehouses.length === 0 ? (
-                <div className="p-6 text-center text-xs text-slate-400 border border-dashed border-slate-200 rounded-xl">
-                  No regional distribution warehouses registered. Manage warehouse hubs and inventory in Governance Settings.
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                  <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
+                    <span>Mumbai Mega-Hub (Bhiwandi)</span>
+                    <span className="text-emerald-700">76% Cap</span>
+                  </div>
+                  <div className="mt-2 text-lg font-bold text-slate-900">17 Servers Avail</div>
+                  <div className="mt-1 text-[11px] text-slate-500">32 active shipments in transit</div>
                 </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {warehouses.map((wh) => (
-                    <div key={wh.id} className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-                      <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
-                        <span>{wh.name}</span>
-                        <span className="text-emerald-700">Active Hub</span>
-                      </div>
-                      <div className="mt-2 text-lg font-bold text-slate-900">{wh.stockCount || 0} Units In Stock</div>
-                      <div className="mt-1 text-[11px] text-slate-500">{wh.location}</div>
-                    </div>
-                  ))}
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                  <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
+                    <span>Bengaluru Tech Depot (Whitefield)</span>
+                    <span className="text-brand-700">62% Cap</span>
+                  </div>
+                  <div className="mt-2 text-lg font-bold text-slate-900">8 Servers Avail</div>
+                  <div className="mt-1 text-[11px] text-slate-500">21 active shipments in transit</div>
                 </div>
-              )}
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                  <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
+                    <span>Delhi-NCR Depot (Gurugram)</span>
+                    <span className="text-amber-700">54% Cap</span>
+                  </div>
+                  <div className="mt-2 text-lg font-bold text-slate-900">1 Server Avail</div>
+                  <div className="mt-1 text-[11px] text-amber-700 font-medium">Low buffer threshold</div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -333,34 +339,48 @@ export function SalesDashboard() {
               description="Pending decisions blocking revenue recognition"
             />
             <CardContent className="p-5 pt-0 space-y-3">
-              {highRiskApprovals.length === 0 ? (
-                <div className="p-6 text-center text-xs text-slate-400 bg-white rounded-xl border border-slate-200">
-                  No pending urgent approval escalations or concession breaches.
-                </div>
-              ) : (
-                highRiskApprovals.map((hr) => (
-                  <div
-                    key={hr.id}
-                    onClick={() => navigate(`/approvals/${hr.id}`)}
-                    className="p-3.5 bg-white rounded-xl border border-amber-200 shadow-xs cursor-pointer hover:border-amber-300 transition-all"
-                  >
-                    <div className="flex items-center justify-between">
-                      <Badge variant="danger" size="sm">Breach Alert</Badge>
-                      <span className="text-[10px] text-slate-400 font-medium">{hr.id}</span>
-                    </div>
-                    <div className="mt-2 text-xs font-bold text-slate-900">{hr.customerName || hr.customer}</div>
-                    <p className="text-[11px] text-amber-800 mt-1 line-clamp-2">
-                      {hr.discountBreachSummary || `${hr.approvalStatus || 'Approval Required'} (Risk Score: ${hr.riskScore || 75})`}
-                    </p>
-                    <div className="mt-3 flex items-center justify-between text-[11px] pt-2 border-t border-slate-100">
-                      <span className="text-slate-500">Rep: {hr.salesRep || 'Sales Rep'}</span>
-                      <span className="font-semibold text-brand-600 flex items-center gap-0.5">
-                        Review <ArrowRight className="w-3 h-3" />
-                      </span>
-                    </div>
+              {highRiskApprovals.map((hr) => (
+                <div
+                  key={hr.id}
+                  onClick={() => navigate(`/approvals/${hr.id}`)}
+                  className="p-3.5 bg-white rounded-xl border border-amber-200 shadow-xs cursor-pointer hover:border-amber-300 transition-all"
+                >
+                  <div className="flex items-center justify-between">
+                    <Badge variant="danger" size="sm">Breach Alert</Badge>
+                    <span className="text-[10px] text-slate-400 font-medium">{hr.id}</span>
                   </div>
-                ))
-              )}
+                  <div className="mt-2 text-xs font-bold text-slate-900">{hr.customerName || hr.customer}</div>
+                  <p className="text-[11px] text-amber-800 mt-1 line-clamp-2">
+                    {hr.discountBreachSummary || `${hr.approvalStatus || 'Approval Required'} (Risk Score: ${hr.riskScore || 75})`}
+                  </p>
+                  <div className="mt-3 flex items-center justify-between text-[11px] pt-2 border-t border-slate-100">
+                    <span className="text-slate-500">Rep: {hr.salesRep || 'Sales Rep'}</span>
+                    <span className="font-semibold text-brand-600 flex items-center gap-0.5">
+                      Review <ArrowRight className="w-3 h-3" />
+                    </span>
+                  </div>
+                </div>
+              ))}
+
+              <div
+                onClick={() => navigate('/fulfillment')}
+                className="p-3.5 bg-white rounded-xl border border-slate-200 shadow-xs cursor-pointer hover:border-slate-300 transition-all"
+              >
+                <div className="flex items-center justify-between">
+                  <Badge variant="warning" size="sm">Backorder</Badge>
+                  <span className="text-[10px] text-slate-400">Order FO-9048</span>
+                </div>
+                <div className="mt-2 text-xs font-bold text-slate-900">Reliance Infotech Ltd</div>
+                <p className="text-[11px] text-slate-500 mt-1">
+                  2 Dell Server units require split allocation from Bengaluru tech center.
+                </p>
+                <div className="mt-3 flex items-center justify-between text-[11px] pt-2 border-t border-slate-100">
+                  <span className="text-slate-500">Suresh Kumar (Ops)</span>
+                  <span className="font-semibold text-brand-600 flex items-center gap-0.5">
+                    Allocate <ArrowRight className="w-3 h-3" />
+                  </span>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
@@ -382,29 +402,23 @@ export function SalesDashboard() {
               }
             />
             <CardContent className="p-5 pt-0 space-y-3">
-              {((dealHealth?.stalledDeals) || []).length === 0 ? (
-                <div className="p-6 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-slate-200">
-                  Pipeline healthy. No stalled deals or anomaly alerts detected.
-                </div>
-              ) : (
-                ((dealHealth?.stalledDeals) || []).slice(0, 2).map((item) => (
-                  <div
-                    key={item.id}
-                    className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-slate-900 truncate">{item.customer || item.customerName}</span>
-                      <Badge variant="warning" size="sm">
-                        {item.daysStalled ? `${item.daysStalled}d Stalled` : 'Anomaly'}
-                      </Badge>
-                    </div>
-                    <p className="text-[11px] text-slate-600 mt-1">{item.anomaly || 'Deal requires review.'}</p>
-                    <div className="mt-2 text-[10px] text-slate-400 bg-white p-2 rounded border border-slate-100">
-                      💡 <span className="font-medium text-slate-700">Owner:</span> {item.owner || 'Sales Rep'} ({item.quote || item.id})
-                    </div>
+              {((dealHealth?.stalledDeals) || []).slice(0, 2).map((item) => (
+                <div
+                  key={item.id}
+                  className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-slate-900 truncate">{item.customer || item.customerName}</span>
+                    <Badge variant="warning" size="sm">
+                      {item.daysStalled ? `${item.daysStalled}d Stalled` : 'Anomaly'}
+                    </Badge>
                   </div>
-                ))
-              )}
+                  <p className="text-[11px] text-slate-600 mt-1">{item.anomaly || 'Deal requires review.'}</p>
+                  <div className="mt-2 text-[10px] text-slate-400 bg-white p-2 rounded border border-slate-100">
+                    💡 <span className="font-medium text-slate-700">Owner:</span> {item.owner || 'Sales Rep'} ({item.quote || item.id})
+                  </div>
+                </div>
+              ))}
             </CardContent>
           </Card>
         </div>

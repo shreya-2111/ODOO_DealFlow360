@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useData } from '../../context/DataContext';
+import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { Card, CardHeader, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -7,26 +9,37 @@ import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
 import { Input, TextArea } from '../../components/ui/Input';
 import {
+  Globe,
   FileCheck,
   Send,
+  MessageSquare,
   ShieldCheck,
   CheckCircle2,
+  AlertCircle,
+  Building,
+  User,
+  ArrowRight,
+  Download,
+  IndianRupee,
+  HelpCircle,
   Edit,
+  Sparkles,
   Clock
 } from 'lucide-react';
 
 export function CustomerPortal() {
+  const navigate = useNavigate();
   const {
     quotations,
     updateQuotation,
     customerSubmitNegotiation,
     customerConfirmQuote,
-    customerConfirmQuotation,
     calculateQuoteFinancials
   } = useData();
+  const { currentUser } = useAuth();
   const { addToast } = useToast();
 
-  const [selectedQuoteId, setSelectedQuoteId] = useState(quotations[0]?.id || 'QT-2026-001');
+  const [selectedQuoteId, setSelectedQuoteId] = useState(quotations[0]?.id || 'QT-2026-901');
 
   // Modals state (Requirement 15)
   const [isQuestionModalOpen, setIsQuestionModalOpen] = useState(false);
@@ -119,44 +132,29 @@ export function CustomerPortal() {
 
   // Confirm Final Terms (Requirement 15 & 16)
   const handleConfirmQuote = (e) => {
-    if (e && e.preventDefault) e.preventDefault();
+    e.preventDefault();
     if (!signerName.trim()) {
       addToast('Please enter your full legal name for digital signature', 'warning');
       return;
     }
-    const confirmFn = customerConfirmQuote || customerConfirmQuotation;
-    if (typeof confirmFn === 'function') {
-      confirmFn(quote.id, signerName);
-    } else if (updateQuotation) {
-      updateQuotation(quote.id, {
-        stage: 'Confirmed',
-        approvalStatus: 'Signed by Customer'
-      });
-    }
+    customerConfirmQuote(quote.id, signerName);
     setIsSignModalOpen(false);
-    addToast('Contract confirmed and digitally executed! Order routed directly to Fulfillment.', 'success', 5000);
+    addToast(`Contract confirmed and digitally executed! Order routed directly to Fulfillment.`, 'success', 5000);
   };
-
-  if (!quote) {
-    return (
-      <div className="space-y-6">
-        <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center shadow-xs">
-          <FileCheck className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-          <h2 className="text-lg font-bold text-slate-900">No Quotations Available for Review</h2>
-          <p className="text-xs text-slate-500 max-w-md mx-auto mt-1">
-            There are currently no active proposals submitted for client review in the Customer Portal. Once a sales representative generates a quotation, it will appear here for negotiation, line inquiries, and digital contract signing.
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
       {/* Customer Portal Top Header (Distinct Customer Look - Requirement 15) */}
       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-brand-600 text-white flex items-center justify-center font-bold text-sm">
+              360
+            </div>
+            <span className="font-bold text-slate-900 text-base">DealFlow360 Customer Portal</span>
+            <span className="text-xs text-slate-400">• Buyer Experience</span>
+          </div>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 mt-2">
             Quotation & Commercial Review
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">

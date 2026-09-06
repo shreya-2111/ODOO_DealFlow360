@@ -2,14 +2,20 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
-import { Card } from '../../components/ui/Card';
+import { Card, CardHeader, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import {
+  CheckSquare,
+  AlertTriangle,
   Clock,
+  ShieldCheck,
   ArrowRight,
+  Filter,
   Search,
-  UserCheck
+  UserCheck,
+  IndianRupee,
+  CheckCircle2
 } from 'lucide-react';
 
 export function ApprovalsList() {

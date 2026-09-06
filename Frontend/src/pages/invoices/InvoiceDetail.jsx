@@ -7,14 +7,19 @@ import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Stepper } from '../../components/ui/Stepper';
 import { Modal } from '../../components/ui/Modal';
-import { Input } from '../../components/ui/Input';
+import { Input, Select } from '../../components/ui/Input';
 import {
   ArrowLeft,
+  Receipt,
   ShieldCheck,
   CheckCircle2,
   Clock,
   Download,
-  CreditCard
+  CreditCard,
+  Truck,
+  AlertTriangle,
+  Building,
+  FileCheck
 } from 'lucide-react';
 
 export function InvoiceDetail() {
@@ -114,7 +119,7 @@ export function InvoiceDetail() {
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              Billed to: <strong className="text-slate-800">{invoice.customer || invoice.customerName}</strong> • Origin Quote: {invoice.quoteId}
+              Billed to: <strong className="text-slate-800">{invoice.customerName}</strong> • Origin Quote: {invoice.quoteId}
             </p>
           </div>
         </div>

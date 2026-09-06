@@ -5,7 +5,6 @@ import {
   INITIAL_WAREHOUSES,
   INITIAL_FULFILLMENT_SPLITS,
   INITIAL_SUBSCRIPTIONS_BILLING,
-  INITIAL_INVOICES,
   DEAL_HEALTH_DATA,
   GOVERNANCE_RULES,
   UPSELL_SUGGESTIONS
@@ -13,19 +12,17 @@ import {
 
 const DataContext = createContext(null);
 
-// Global data store holding unified mock records and state manipulation functions
 export function DataProvider({ children }) {
   const [quotations, setQuotations] = useState(INITIAL_QUOTATIONS);
   const [products, setProducts] = useState(INITIAL_PRODUCTS);
-  const [warehouses] = useState(INITIAL_WAREHOUSES);
+  const [warehouses, setWarehouses] = useState(INITIAL_WAREHOUSES);
   const [fulfillmentSplits, setFulfillmentSplits] = useState(INITIAL_FULFILLMENT_SPLITS);
   const [subscriptions, setSubscriptions] = useState(INITIAL_SUBSCRIPTIONS_BILLING);
-  const [invoices, setInvoices] = useState(INITIAL_INVOICES);
-  const [dealHealth] = useState(DEAL_HEALTH_DATA);
+  const [dealHealth, setDealHealth] = useState(DEAL_HEALTH_DATA);
   const [governanceRules, setGovernanceRules] = useState(GOVERNANCE_RULES);
-  const [upsellSuggestions] = useState(UPSELL_SUGGESTIONS);
+  const [upsellSuggestions, setUpsellSuggestions] = useState(UPSELL_SUGGESTIONS);
 
-  // Calculate pricing, margins, tax, and governance risk score for quote items
+  // Financial & Margin & Risk Score Calculation engine
   const calculateQuoteFinancials = (items = [], customerTier = 'Silver Tier', orderDiscountPercent = 0) => {
     let subtotal = 0;
     let totalCost = 0;
@@ -36,11 +33,11 @@ export function DataProvider({ children }) {
 
     const tierLimit = governanceRules.tierCeilings[customerTier] || 10;
 
-    // Aggregate line item pricing and evaluate discount breaches
     items.forEach((item) => {
       const lineSubtotal = (item.unitPrice || 0) * (item.quantity || 1);
       const lineDiscPct = item.discountPercent || 0;
       const lineDiscVal = (lineSubtotal * lineDiscPct) / 100;
+      const lineNet = lineSubtotal - lineDiscVal;
       const lineCost = (item.unitCost || 0) * (item.quantity || 1);
 
       subtotal += lineSubtotal;
@@ -56,21 +53,21 @@ export function DataProvider({ children }) {
       }
     });
 
-    // Compute net amount and apply order-level discount
+    // Order-level discount
     const discountedAfterLines = subtotal - lineDiscountAmount;
     const orderDiscountAmount = (discountedAfterLines * (orderDiscountPercent || 0)) / 100;
     const netAmount = discountedAfterLines - orderDiscountAmount;
     const totalDiscountAmount = lineDiscountAmount + orderDiscountAmount;
 
-    // Calculate 18% GST and gross margin
+    // GST 18%
     const totalTax = netAmount * 0.18;
     const totalAmount = netAmount + totalTax;
+
     const grossProfit = netAmount - totalCost;
     const grossMargin = netAmount > 0 ? (((netAmount - totalCost) / netAmount) * 100).toFixed(1) : 0;
 
-    // Score deal risk based on discount depth and deal value
     if (orderDiscountPercent > 5) riskPoints += 15;
-    if (totalAmount > 1000000) riskPoints += 20;
+    if (totalAmount > 1000000) riskPoints += 20; // High value order > ₹10 Lakh
     if (Number(grossMargin) < 25) riskPoints += 25;
 
     const finalRiskScore = Math.min(100, Math.max(10, Math.round(riskPoints + 15)));
@@ -94,7 +91,7 @@ export function DataProvider({ children }) {
     };
   };
 
-  // Add a new quotation to local state with calculated risk metrics
+  // Add / Update Quotation
   const addQuotation = (newQuote) => {
     const fin = calculateQuoteFinancials(newQuote.items, newQuote.customerTier, newQuote.orderDiscountPercent);
     const quoteWithStats = {
@@ -105,7 +102,6 @@ export function DataProvider({ children }) {
     return quoteWithStats;
   };
 
-  // Update existing quotation fields and recalculate risk score
   const updateQuotation = (id, updatedFields) => {
     setQuotations((prev) =>
       prev.map((q) => {
@@ -122,7 +118,7 @@ export function DataProvider({ children }) {
     );
   };
 
-  // Submit quote into managerial and finance approval chain
+  // Submit quotation for approval
   const submitQuoteForApproval = (quoteId, repName) => {
     setQuotations((prev) =>
       prev.map((q) => {
@@ -156,7 +152,7 @@ export function DataProvider({ children }) {
     );
   };
 
-  // Advance approval workflow to the next step or mark quotation fully approved
+  // Approval step action
   const approveQuoteStep = (quoteId, reviewerName, roleTitle, comments = '') => {
     setQuotations((prev) =>
       prev.map((q) => {
@@ -202,7 +198,7 @@ export function DataProvider({ children }) {
     );
   };
 
-  // Reject quotation and record reason in timeline
+  // Reject / Return Quote
   const rejectQuote = (quoteId, reviewerName, roleTitle, reason) => {
     setQuotations((prev) =>
       prev.map((q) => {
@@ -223,7 +219,6 @@ export function DataProvider({ children }) {
     );
   };
 
-  // Return quotation to draft for pricing revision
   const returnQuoteForRevision = (quoteId, reviewerName, roleTitle, reason) => {
     setQuotations((prev) =>
       prev.map((q) => {
@@ -244,7 +239,7 @@ export function DataProvider({ children }) {
     );
   };
 
-  // Post a customer question on a quote line item
+  // Customer Portal Interactions & Re-Approval Trigger Logic
   const customerAskLineQuestion = (quoteId, itemId, question) => {
     setQuotations((prev) =>
       prev.map((q) => {
@@ -260,11 +255,11 @@ export function DataProvider({ children }) {
     );
   };
 
-  // Submit customer counter-discount and trigger re-approval routing
   const customerSubmitNegotiation = (quoteId, requestedDiscount, comment) => {
     setQuotations((prev) =>
       prev.map((q) => {
         if (q.id === quoteId) {
+          // Adjust first hardware line discount to match counter
           const updatedItems = q.items.map((it, idx) => (idx === 0 ? { ...it, discountPercent: Number(requestedDiscount) } : it));
           const fin = calculateQuoteFinancials(updatedItems, q.customerTier, q.orderDiscountPercent);
 
@@ -273,6 +268,7 @@ export function DataProvider({ children }) {
             ...(q.timeline || [])
           ];
 
+          // If counter exceeds threshold, automatically routes back to Sales Manager and Finance
           const reApprovalSteps = [
             { role: 'Customer Counter Submitted', reviewer: q.customer, status: 'approved', timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16), comments: comment },
             { role: 'Sales Manager Approval', reviewer: 'Priya Patel', status: 'pending', timestamp: null, comments: 'Evaluating counter terms.' }
@@ -296,9 +292,7 @@ export function DataProvider({ children }) {
     );
   };
 
-  // Digitally sign and confirm quotation
   const customerConfirmQuotation = (quoteId, signerName) => {
-    let confirmedQuote = null;
     setQuotations((prev) =>
       prev.map((q) => {
         if (q.id === quoteId) {
@@ -306,57 +300,25 @@ export function DataProvider({ children }) {
             { sender: `${signerName} (Customer)`, action: 'Confirmed final quotation terms and digitally signed agreement', timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16), note: 'Directly routing to Fulfillment.' },
             ...(q.timeline || [])
           ];
-          confirmedQuote = {
+          return {
             ...q,
             stage: 'Confirmed',
             approvalStatus: 'Signed by Customer',
             timeline: newTimeline
           };
-          return confirmedQuote;
         }
         return q;
       })
     );
-
-    // Auto-create / route fulfillment order
-    setFulfillmentSplits((prev) => {
-      const exists = prev.some((f) => f.quoteId === quoteId);
-      if (exists) return prev;
-      const orderId = `FO-${quoteId.replace(/[^0-9]/g, '') || Math.floor(1000 + Math.random() * 9000)}`;
-      const targetQuote = quotations.find((q) => q.id === quoteId);
-      const items = targetQuote?.items || [];
-      const newOrder = {
-        id: orderId,
-        orderId,
-        quoteId,
-        customer: targetQuote?.customer || targetQuote?.customerName || 'Customer',
-        destination: 'Mumbai, Maharashtra',
-        status: 'Ready to Ship',
-        createdDate: new Date().toISOString().substring(0, 10),
-        lines: items.map((it, idx) => ({
-          lineId: `L-${idx + 1}`,
-          sku: it.sku || `SKU-${idx + 1}`,
-          name: it.name || it.productName || 'Product',
-          requestedQty: it.quantity || 1,
-          backorderedQty: 0,
-          splits: [
-            { warehouse: 'Mumbai Mega-Hub (Bhiwandi)', qty: it.quantity || 1, shipmentCount: 1, cost: 850 }
-          ]
-        }))
-      };
-      return [newOrder, ...prev];
-    });
   };
 
-
-  // Confirm warehouse allocation for shipping
+  // Fulfillment Split actions
   const acceptWarehouseSplit = (orderId) => {
     setFulfillmentSplits((prev) =>
       prev.map((f) => (f.orderId === orderId ? { ...f, status: 'Ready to Ship' } : f))
     );
   };
 
-  // Override warehouse unit distribution
   const overrideWarehouseSplit = (orderId, lineId, warehouseName, newQty) => {
     setFulfillmentSplits((prev) =>
       prev.map((f) => {
@@ -375,7 +337,6 @@ export function DataProvider({ children }) {
     );
   };
 
-  // Consolidate backordered items into a designated warehouse
   const consolidateBackorder = (orderId, lineId, warehouseName) => {
     setFulfillmentSplits((prev) =>
       prev.map((f) => {
@@ -401,7 +362,7 @@ export function DataProvider({ children }) {
     );
   };
 
-  // Adjust subscription seat quantity and recurring monthly total
+  // Subscriptions & Proration calculations
   const modifySubscriptionQuantity = (subId, newQuantity) => {
     setSubscriptions((prev) =>
       prev.map((s) => {
@@ -409,6 +370,7 @@ export function DataProvider({ children }) {
           const prevPrice = s.recurringPrice;
           const unitRate = prevPrice / (s.recurringItems[0]?.quantity || 1);
           const newPrice = unitRate * newQuantity;
+          const prorationAdjustment = Math.round((newPrice - prevPrice) * 0.5); // 15 days remaining in month
 
           return {
             ...s,
@@ -421,31 +383,21 @@ export function DataProvider({ children }) {
     );
   };
 
-  // Mark subscription status as cancelled
   const cancelSubscription = (subId) => {
     setSubscriptions((prev) =>
       prev.map((s) => (s.id === subId ? { ...s, status: 'Cancelled' } : s))
     );
   };
 
-  // Update invoice reconciliation lifecycle state
-  const updateInvoiceReconciliation = (invoiceId, stage) => {
-    setInvoices((prev) =>
-      prev.map((i) => (i.id === invoiceId ? { ...i, reconciliationStage: stage, status: stage === 'Paid & Reconciled' ? 'Paid' : i.status } : i))
-    );
-  };
-
-  // Add new product item to master catalog
+  // Admin CRUD
   const adminAddProduct = (newProduct) => {
     setProducts((prev) => [newProduct, ...prev]);
   };
 
-  // Update product specs and pricing in catalog
   const adminUpdateProduct = (id, updates) => {
     setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, ...updates } : p)));
   };
 
-  // Save modified governance discount limits
   const adminSaveGovernance = (rules) => {
     setGovernanceRules(rules);
   };
@@ -459,7 +411,6 @@ export function DataProvider({ children }) {
         fulfillmentSplits,
         fulfillmentOrders: fulfillmentSplits,
         subscriptions,
-        invoices,
         dealHealth,
         governanceRules,
         upsellSuggestions,
@@ -473,19 +424,16 @@ export function DataProvider({ children }) {
         customerAskLineQuestion,
         customerSubmitNegotiation,
         customerConfirmQuotation,
-        customerConfirmQuote: customerConfirmQuotation,
         acceptWarehouseSplit,
         overrideWarehouseSplit,
         consolidateBackorder,
         modifySubscriptionQuantity,
         cancelSubscription,
-        updateInvoiceReconciliation,
         adminAddProduct,
         adminUpdateProduct,
         adminSaveGovernance,
         setQuotations,
-        setProducts,
-        setInvoices
+        setProducts
       }}
     >
       {children}
@@ -493,7 +441,6 @@ export function DataProvider({ children }) {
   );
 }
 
-// Hook for accessing DealFlow360 data context
 export const useData = () => {
   const context = useContext(DataContext);
   if (!context) throw new Error('useData must be used within a DataProvider');

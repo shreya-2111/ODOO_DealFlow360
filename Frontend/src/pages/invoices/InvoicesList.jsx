@@ -1,10 +1,20 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../../context/DataContext';
-import { Card, CardContent } from '../../components/ui/Card';
+import { Card, CardHeader, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
-import { ArrowRight, Search, ShieldCheck } from 'lucide-react';
+import {
+  Receipt,
+  IndianRupee,
+  Calendar,
+  CheckCircle2,
+  Clock,
+  ArrowRight,
+  Search,
+  Filter,
+  ShieldCheck
+} from 'lucide-react';
 
 export function InvoicesList() {
   const navigate = useNavigate();
@@ -24,15 +34,10 @@ export function InvoicesList() {
       (activeTab === 'UNPAID' && (inv.status === 'Unpaid' || inv.status === 'Draft')) ||
       (activeTab === 'OVERDUE' && inv.status === 'Overdue');
 
-    const idStr = (inv.id || '').toLowerCase();
-    const custStr = (inv.customer || inv.customerName || '').toLowerCase();
-    const quoteStr = (inv.quoteId || '').toLowerCase();
-    const q = (searchQuery || '').toLowerCase();
-
     const matchesSearch =
-      idStr.includes(q) ||
-      custStr.includes(q) ||
-      quoteStr.includes(q);
+      inv.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      inv.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      inv.quoteId.toLowerCase().includes(searchQuery.toLowerCase());
 
     return matchesTab && matchesSearch;
   });
@@ -146,14 +151,7 @@ export function InvoicesList() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredInvoices.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
-                    No GST invoices generated. Confirmed orders ready for revenue recognition will populate this ledger.
-                  </td>
-                </tr>
-              ) : (
-                filteredInvoices.map((inv) => {
+              {filteredInvoices.map((inv) => {
                 const isPaid = inv.status === 'Paid';
                 const isUnpaid = inv.status === 'Unpaid';
 
@@ -217,7 +215,7 @@ export function InvoicesList() {
                     </td>
                   </tr>
                 );
-              }))}
+              })}
             </tbody>
           </table>
         </div>

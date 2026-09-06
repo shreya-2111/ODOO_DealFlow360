@@ -1,7 +1,6 @@
 import React from 'react';
 import { Check, Clock, AlertCircle } from 'lucide-react';
 
-// Progress stepper displaying sequential status checkpoints
 export function Stepper({ steps = [], currentStepIndex = 0 }) {
   return (
     <div className="w-full py-2">
@@ -9,11 +8,12 @@ export function Stepper({ steps = [], currentStepIndex = 0 }) {
         {steps.map((step, idx) => {
           const isDone = step.status === 'approved' || idx < currentStepIndex;
           const isCurrent = step.status === 'pending' || idx === currentStepIndex;
+          const isUpcoming = step.status === 'upcoming' || (!isDone && !isCurrent);
           const isRejected = step.status === 'rejected';
 
           return (
             <div key={idx} className="flex-1 relative flex flex-col items-center">
-              {/* Connector line between steps */}
+              {/* Connector line */}
               {idx !== 0 && (
                 <div
                   className={`absolute top-4 -left-1/2 w-full h-0.5 -translate-y-1/2 z-0 ${
@@ -22,7 +22,7 @@ export function Stepper({ steps = [], currentStepIndex = 0 }) {
                 />
               )}
 
-              {/* Step indicator circle */}
+              {/* Step Circle */}
               <div
                 className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all duration-200 shadow-xs ${
                   isDone
@@ -45,7 +45,7 @@ export function Stepper({ steps = [], currentStepIndex = 0 }) {
                 )}
               </div>
 
-              {/* Step label and metadata */}
+              {/* Label */}
               <div className="mt-2 text-center max-w-[140px]">
                 <p
                   className={`text-xs font-medium leading-tight ${
@@ -73,7 +73,6 @@ export function Stepper({ steps = [], currentStepIndex = 0 }) {
   );
 }
 
-// Tab navigation bar with active indicators and optional count badges
 export function Tabs({ tabs, activeTab, onChange, className = '' }) {
   return (
     <div className={`flex items-center gap-1 border-b border-slate-200 ${className}`}>
@@ -107,7 +106,6 @@ export function Tabs({ tabs, activeTab, onChange, className = '' }) {
   );
 }
 
-// Empty state placeholder banner
 export function EmptyState({
   icon: Icon,
   title,
