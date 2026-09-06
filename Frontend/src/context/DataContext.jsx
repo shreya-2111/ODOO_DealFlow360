@@ -255,7 +255,17 @@ export function DataProvider({ children }) {
     );
   };
 
-  const customerSubmitNegotiation = (quoteId, requestedDiscount, comment) => {
+  const customerSubmitNegotiation = (quoteId, requestedDiscountOrData, maybeComment) => {
+    let requestedDiscount = 0;
+    let comment = '';
+    if (typeof requestedDiscountOrData === 'object' && requestedDiscountOrData !== null) {
+      requestedDiscount = requestedDiscountOrData.counterDiscount || 0;
+      comment = requestedDiscountOrData.comment || requestedDiscountOrData.requestedChange || '';
+    } else {
+      requestedDiscount = requestedDiscountOrData || 0;
+      comment = maybeComment || '';
+    }
+
     setQuotations((prev) =>
       prev.map((q) => {
         if (q.id === quoteId) {
@@ -264,13 +274,13 @@ export function DataProvider({ children }) {
           const fin = calculateQuoteFinancials(updatedItems, q.customerTier, q.orderDiscountPercent);
 
           const newTimeline = [
-            { sender: `${q.customer} (Customer)`, action: `Submitted counter negotiation (${requestedDiscount}%). Note: "${comment}"`, timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16), note: 'Re-approval triggered.' },
+            { sender: `${q.customer || 'Customer'} (Customer)`, action: `Submitted counter negotiation (${requestedDiscount}%). Note: "${comment}"`, timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16), note: 'Re-approval triggered.' },
             ...(q.timeline || [])
           ];
 
           // If counter exceeds threshold, automatically routes back to Sales Manager and Finance
           const reApprovalSteps = [
-            { role: 'Customer Counter Submitted', reviewer: q.customer, status: 'approved', timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16), comments: comment },
+            { role: 'Customer Counter Submitted', reviewer: q.customer || 'Customer', status: 'approved', timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16), comments: comment },
             { role: 'Sales Manager Approval', reviewer: 'Priya Patel', status: 'pending', timestamp: null, comments: 'Evaluating counter terms.' }
           ];
 
@@ -293,23 +303,72 @@ export function DataProvider({ children }) {
   };
 
   const customerConfirmQuotation = (quoteId, signerName) => {
+    const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 16);
     setQuotations((prev) =>
       prev.map((q) => {
         if (q.id === quoteId) {
           const newTimeline = [
-            { sender: `${signerName} (Customer)`, action: 'Confirmed final quotation terms and digitally signed agreement', timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16), note: 'Directly routing to Fulfillment.' },
+            { sender: `${signerName} (Customer)`, action: 'Confirmed final quotation terms and digitally signed agreement', timestamp, note: 'Directly routing to Fulfillment.' },
             ...(q.timeline || [])
           ];
+
+          const existingSteps = q.approvalSteps || [];
+          const updatedSteps = existingSteps.map((step) => {
+            if (step.role.toLowerCase().includes('customer') || step.role.toLowerCase().includes('sign')) {
+              return { ...step, status: 'approved', reviewer: signerName, timestamp, comments: 'Contract signed digitally via Customer Portal.' };
+            }
+            return step;
+          });
+
+          if (!updatedSteps.some((step) => step.role.toLowerCase().includes('sign') || step.role.toLowerCase().includes('customer'))) {
+            updatedSteps.push({
+              role: 'Customer E-Signature',
+              reviewer: signerName,
+              status: 'approved',
+              timestamp,
+              comments: 'Contract signed digitally via Customer Portal.'
+            });
+          }
+
           return {
             ...q,
             stage: 'Confirmed',
             approvalStatus: 'Signed by Customer',
+            signedBy: signerName,
+            approvalSteps: updatedSteps,
             timeline: newTimeline
           };
         }
         return q;
       })
     );
+
+    // Ensure order exists in fulfillment splits
+    setFulfillmentSplits((prev) => {
+      if (prev.some((f) => f.quoteId === quoteId)) return prev;
+      const targetQuote = quotations.find((q) => q.id === quoteId);
+      if (!targetQuote) return prev;
+      const newOrder = {
+        orderId: `FO-${Math.floor(1000 + Math.random() * 9000)}`,
+        quoteId: targetQuote.id,
+        customer: targetQuote.customer || targetQuote.customerName || 'Customer',
+        destination: 'Customer Registered Address, Mumbai, Maharashtra',
+        status: 'Pending Split Allocation',
+        orderDate: new Date().toISOString().split('T')[0],
+        estimatedDelivery: new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0],
+        lines: (targetQuote.items || [])
+          .filter((it) => it.category === 'Hardware' || it.type === 'one_time')
+          .map((it, idx) => ({
+            lineId: `fol-${idx + 1}`,
+            productId: it.productId || `PRD-${idx + 101}`,
+            name: it.name,
+            requiredQty: it.quantity || 1,
+            splits: [],
+            backorderedQty: it.quantity || 1
+          }))
+      };
+      return [newOrder, ...prev];
+    });
   };
 
   // Fulfillment Split actions
@@ -424,6 +483,7 @@ export function DataProvider({ children }) {
         customerAskLineQuestion,
         customerSubmitNegotiation,
         customerConfirmQuotation,
+        customerConfirmQuote: customerConfirmQuotation,
         acceptWarehouseSplit,
         overrideWarehouseSplit,
         consolidateBackorder,

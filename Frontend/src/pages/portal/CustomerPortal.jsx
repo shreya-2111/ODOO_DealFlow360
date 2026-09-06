@@ -34,6 +34,7 @@ export function CustomerPortal() {
     updateQuotation,
     customerSubmitNegotiation,
     customerConfirmQuote,
+    customerConfirmQuotation,
     calculateQuoteFinancials
   } = useData();
   const { currentUser } = useAuth();
@@ -132,14 +133,23 @@ export function CustomerPortal() {
 
   // Confirm Final Terms (Requirement 15 & 16)
   const handleConfirmQuote = (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     if (!signerName.trim()) {
       addToast('Please enter your full legal name for digital signature', 'warning');
       return;
     }
-    customerConfirmQuote(quote.id, signerName);
+    const confirmFn = customerConfirmQuote || customerConfirmQuotation;
+    if (typeof confirmFn === 'function') {
+      confirmFn(quote.id, signerName);
+    } else {
+      updateQuotation(quote.id, {
+        stage: 'Confirmed',
+        approvalStatus: 'Signed by Customer',
+        signedBy: signerName
+      });
+    }
     setIsSignModalOpen(false);
-    addToast(`Contract confirmed and digitally executed! Order routed directly to Fulfillment.`, 'success', 5000);
+    addToast('Contract confirmed and digitally executed! Order routed directly to Fulfillment.', 'success', 5000);
   };
 
   return (
@@ -428,7 +438,7 @@ export function CustomerPortal() {
                     <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-center">
                       <CheckCircle2 className="w-5 h-5 text-emerald-600 mx-auto mb-1" />
                       <div className="text-xs font-bold text-emerald-900">Contract Confirmed</div>
-                      <span className="text-[10px] text-emerald-700">Signed by {quote.contactPerson}</span>
+                      <span className="text-[10px] text-emerald-700">Signed by {quote.signedBy || quote.contactPerson || signerName}</span>
                     </div>
                   )}
                 </div>
