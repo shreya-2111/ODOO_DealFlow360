@@ -20,6 +20,7 @@ dist-ssr
 !.vscode/extensions.json
 .idea
 .DS_Store
+Thumbs.db
 *.suo
 *.ntvs*
 *.njsproj
@@ -45,9 +46,11 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.pyc
+*.pyo
 
 # Django local database and environment secrets
 *.sqlite3
 *.sqlite3-journal
+db.sqlite3
 .env
 !.env.example
