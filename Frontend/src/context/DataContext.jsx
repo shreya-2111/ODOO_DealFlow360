@@ -31,7 +31,10 @@ export function DataProvider({ children }) {
     let breachDetails = [];
     let riskPoints = 0;
 
-    const tierLimit = governanceRules.tierCeilings[customerTier] || 10;
+    const cleanTier = (customerTier || '').replace(' Tier', '').trim();
+    const tierLimit = governanceRules.tierCeilings[customerTier] ||
+                      governanceRules.tierCeilings[cleanTier] ||
+                      governanceRules.tierCeilings[`${cleanTier} Tier`] || 10;
 
     items.forEach((item) => {
       const lineSubtotal = (item.unitPrice || 0) * (item.quantity || 1);

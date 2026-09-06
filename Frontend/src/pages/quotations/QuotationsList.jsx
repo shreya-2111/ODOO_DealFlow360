@@ -43,7 +43,7 @@ export function QuotationsList() {
   const [customerName, setCustomerName] = useState('');
   const [contactPerson, setContactPerson] = useState('');
   const [contactEmail, setContactEmail] = useState('');
-  const [customerTier, setCustomerTier] = useState('Enterprise Tier');
+  const [customerTier, setCustomerTier] = useState('Gold');
   const [selectedProductId, setSelectedProductId] = useState(products[0]?.id || 'PRD-101');
   const [initialQty, setInitialQty] = useState(1);
   const [initialDiscount, setInitialDiscount] = useState(5);
@@ -570,10 +570,10 @@ export function QuotationsList() {
               value={customerTier}
               onChange={(e) => setCustomerTier(e.target.value)}
               options={[
-                { value: 'Enterprise Tier', label: 'Enterprise Tier (Max 20% discount)' },
-                { value: 'Gold Tier', label: 'Gold Tier (Max 15% discount)' },
-                { value: 'Silver Tier', label: 'Silver Tier (Max 10% discount)' },
-                { value: 'Bronze Tier', label: 'Bronze Tier (Max 5% discount)' },
+                { value: 'Platinum', label: 'Platinum (Max 20% discount)' },
+                { value: 'Gold', label: 'Gold (Max 15% discount)' },
+                { value: 'Silver', label: 'Silver (Max 10% discount)' },
+                { value: 'Bronze', label: 'Bronze (Max 5% discount)' },
               ]}
             />
           </div>

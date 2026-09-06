@@ -48,20 +48,10 @@ class Command(BaseCommand):
 
         # ==========================================
         # 1. ROLES (4 Roles Only: admin, finance manager, sales manager, sales representative)
-        # ==========================================
-        roles_data = [
-            (1, 'admin'),
-            (2, 'finance manager'),
-            (3, 'sales manager'),
-            (4, 'sales representative'),
-        ]
-
+        roles_names = ['admin', 'finance manager', 'sales manager', 'sales representative', 'customer']
         roles_dict = {}
-        for r_id, r_name in roles_data:
-            role, _ = Role.objects.get_or_create(id=r_id, defaults={'role_name': r_name})
-            if role.role_name != r_name:
-                role.role_name = r_name
-                role.save()
+        for r_name in roles_names:
+            role, _ = Role.objects.get_or_create(role_name=r_name)
             roles_dict[r_name] = role
 
         # Strictly ensure only these 4 roles exist in the database
@@ -163,29 +153,13 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f"  [2/14] Users: {User.objects.count()} records"))
 
         # ==========================================
-        # 3. CUSTOMER TIERS (20 Records)
+        # 3. CUSTOMER TIERS (Bronze, Silver, Gold, Platinum only)
         # ==========================================
         tier_names = [
-            ('Bronze Tier', '5.00'),
-            ('Silver Tier', '10.00'),
-            ('Gold Tier', '15.00'),
-            ('Enterprise Tier', '20.00'),
-            ('Platinum Tier', '22.00'),
-            ('Diamond Elite Tier', '25.00'),
-            ('Strategic Key Account', '24.00'),
-            ('Global Partner', '22.00'),
-            ('OEM Wholesale', '30.00'),
-            ('Government Priority', '8.00'),
-            ('Education & Research', '12.00'),
-            ('Non-Profit Advantage', '14.00'),
-            ('High-Growth Scaleup', '11.00'),
-            ('Early Adopter Program', '16.00'),
-            ('Regional Distributor', '28.00'),
-            ('Channel Reseller Alpha', '21.00'),
-            ('Premier Corporate VIP', '26.00'),
-            ('Emerging Mid-Market', '9.00'),
-            ('Boutique Commercial', '7.00'),
-            ('Standard Commercial', '6.00'),
+            ('Bronze', '5.00'),
+            ('Silver', '10.00'),
+            ('Gold', '15.00'),
+            ('Platinum', '20.00'),
         ]
 
         tiers_dict = {}
@@ -198,6 +172,7 @@ class Command(BaseCommand):
                 t.discount_percentage = Decimal(disc)
                 t.save()
             tiers_dict[name] = t
+        CustomerTier.objects.exclude(id__in=[t.id for t in tiers_dict.values()]).delete()
         self.stdout.write(self.style.SUCCESS(f"  [3/14] CustomerTiers: {CustomerTier.objects.count()} records"))
 
         # ==========================================
@@ -417,11 +392,12 @@ class Command(BaseCommand):
             ('Razorpay Capital Solutions', 'The Pavillion, Outer Ring Road, Bengaluru 560037', 'SJR Cyber, Hosur Road, Bengaluru 560029'),
         ]
 
-        # Customer tiers strictly cycle among Gold, Silver, Bronze as per user request
+        # Customer tiers strictly cycle among Gold, Silver, Bronze, Platinum as per user request
         core_customer_tiers = [
-            tiers_dict['Gold Tier'],
-            tiers_dict['Silver Tier'],
-            tiers_dict['Bronze Tier']
+            tiers_dict['Gold'],
+            tiers_dict['Silver'],
+            tiers_dict['Bronze'],
+            tiers_dict['Platinum'],
         ]
 
         customers = []
@@ -492,26 +468,22 @@ class Command(BaseCommand):
         # 10. DISCOUNT TIER RULES (20 Records - Governed Discount Ceilings)
         # ==========================================
         discount_matrix = [
-            ('Bronze Tier', 'Hardware', '5.00'),
-            ('Bronze Tier', 'Subscriptions', '5.00'),
-            ('Bronze Tier', 'Services', '5.00'),
-            ('Bronze Tier', 'Networking & Infrastructure', '5.00'),
-            ('Silver Tier', 'Hardware', '10.00'),
-            ('Silver Tier', 'Subscriptions', '10.00'),
-            ('Silver Tier', 'Services', '8.00'),
-            ('Silver Tier', 'Networking & Infrastructure', '10.00'),
-            ('Gold Tier', 'Hardware', '15.00'),
-            ('Gold Tier', 'Subscriptions', '18.00'),
-            ('Gold Tier', 'Services', '10.00'),
-            ('Gold Tier', 'Networking & Infrastructure', '15.00'),
-            ('Enterprise Tier', 'Hardware', '15.00'),
-            ('Enterprise Tier', 'Subscriptions', '20.00'),
-            ('Enterprise Tier', 'Services', '12.00'),
-            ('Enterprise Tier', 'Networking & Infrastructure', '18.00'),
-            ('Platinum Tier', 'Hardware', '18.00'),
-            ('Platinum Tier', 'Subscriptions', '22.00'),
-            ('Diamond Elite Tier', 'Subscriptions', '25.00'),
-            ('Strategic Key Account', 'Hardware', '20.00'),
+            ('Bronze', 'Hardware', '5.00'),
+            ('Bronze', 'Subscriptions', '5.00'),
+            ('Bronze', 'Services', '5.00'),
+            ('Bronze', 'Networking & Infrastructure', '5.00'),
+            ('Silver', 'Hardware', '10.00'),
+            ('Silver', 'Subscriptions', '10.00'),
+            ('Silver', 'Services', '8.00'),
+            ('Silver', 'Networking & Infrastructure', '10.00'),
+            ('Gold', 'Hardware', '15.00'),
+            ('Gold', 'Subscriptions', '18.00'),
+            ('Gold', 'Services', '10.00'),
+            ('Gold', 'Networking & Infrastructure', '15.00'),
+            ('Platinum', 'Hardware', '18.00'),
+            ('Platinum', 'Subscriptions', '22.00'),
+            ('Platinum', 'Services', '15.00'),
+            ('Platinum', 'Networking & Infrastructure', '20.00'),
         ]
 
         DiscountTierRule.objects.all().delete()

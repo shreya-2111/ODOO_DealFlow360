@@ -701,10 +701,14 @@ export const DEAL_HEALTH_DATA = {
 
 export const GOVERNANCE_RULES = {
   tierCeilings: {
+    'Bronze': 5,
     'Bronze Tier': 5,
+    'Silver': 10,
     'Silver Tier': 10,
+    'Gold': 15,
     'Gold Tier': 15,
-    'Enterprise Tier': 20,
+    'Platinum': 20,
+    'Platinum Tier': 20,
   },
   categoryCeilings: {
     'Hardware': 15,
