@@ -50,7 +50,7 @@ class CustomerAdmin(admin.ModelAdmin):
         'shipping_address',
     ]
     ordering = ['-created_at']
-    raw_id_fields = ['user', 'assigned_sales_rep']
+    autocomplete_fields = ['user', 'assigned_sales_rep']
 
     @admin.display(description='User Email')
     def user_email(self, obj):
@@ -103,7 +103,7 @@ class ProductVariantAdmin(admin.ModelAdmin):
     list_filter = ['attribute_name']
     search_fields = ['variant_sku', 'product__name', 'product__sku', 'attribute_name', 'attribute_value']
     ordering = ['variant_sku']
-    raw_id_fields = ['product']
+    autocomplete_fields = ['product']
 
 
 @admin.register(RecommendationRule)
@@ -125,7 +125,7 @@ class RecommendationRuleAdmin(admin.ModelAdmin):
         'suggested_product__name',
     ]
     ordering = ['-priority', 'id']
-    raw_id_fields = ['source_product', 'suggested_product']
+    autocomplete_fields = ['source_product', 'suggested_product']
 
 
 @admin.register(DiscountTierRule)
@@ -149,7 +149,7 @@ class QuotationItemInline(admin.TabularInline):
         'tax_amount',
         'line_total',
     ]
-    raw_id_fields = ['product', 'variant']
+    autocomplete_fields = ['product', 'variant']
 
 
 @admin.register(Quotation)
@@ -177,7 +177,7 @@ class QuotationAdmin(admin.ModelAdmin):
     ordering = ['-created_at']
     readonly_fields = ['created_at', 'last_interaction_at']
     inlines = [QuotationItemInline]
-    raw_id_fields = ['customer', 'sales_rep']
+    autocomplete_fields = ['customer', 'sales_rep']
 
 
 @admin.register(QuotationItem)
@@ -200,7 +200,7 @@ class QuotationItemAdmin(admin.ModelAdmin):
         'product__sku',
     ]
     ordering = ['id']
-    raw_id_fields = ['quotation', 'product', 'variant']
+    autocomplete_fields = ['quotation', 'product', 'variant']
 
 
 @admin.register(ApprovalRequest)
@@ -215,7 +215,7 @@ class ApprovalRequestAdmin(admin.ModelAdmin):
     list_filter = ['status', 'created_at']
     search_fields = ['quotation__quotation_number']
     ordering = ['-created_at']
-    raw_id_fields = ['quotation']
+    autocomplete_fields = ['quotation']
 
 
 @admin.register(DealHealthAlert)
@@ -232,7 +232,7 @@ class DealHealthAlertAdmin(admin.ModelAdmin):
     list_filter = ['alert_type', 'severity', 'is_resolved', 'created_at']
     search_fields = ['quotation__quotation_number', 'description']
     ordering = ['-created_at']
-    raw_id_fields = ['quotation', 'resolved_by_user']
+    autocomplete_fields = ['quotation', 'resolved_by_user']
     actions = ['mark_as_resolved']
 
     @admin.action(description='Mark selected alerts as resolved')
