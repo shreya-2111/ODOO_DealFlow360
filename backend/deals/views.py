@@ -41,35 +41,7 @@ from .serializers import (
 
 def recalculate_quotation(quotation):
     """Recalculates totals, margins and blended risk score for a quotation."""
-    items = quotation.items.select_related('product').all()
-    gross = Decimal('0.00')
-    disc = Decimal('0.00')
-    net = Decimal('0.00')
-    cost = Decimal('0.00')
-    risk_sum = Decimal('0.00')
-    count = 0
-
-    for it in items:
-        gross += Decimal(str(it.unit_price)) * Decimal(str(it.quantity))
-        disc += Decimal(str(it.discount_amount))
-        net += Decimal(str(it.line_total))
-        cost += Decimal(str(it.cost_price)) * Decimal(str(it.quantity))
-        risk_sum += Decimal(str(it.line_risk_score))
-        count += 1
-
-    quotation.total_gross_amount = gross.quantize(Decimal('0.01'))
-    quotation.total_discount_amount = disc.quantize(Decimal('0.01'))
-    quotation.total_net_amount = net.quantize(Decimal('0.01'))
-    quotation.total_cost = cost.quantize(Decimal('0.01'))
-
-    if net > 0:
-        margin = ((net - cost) / net) * Decimal('100')
-        quotation.margin_percent = margin.quantize(Decimal('0.01'))
-    else:
-        quotation.margin_percent = Decimal('0.00')
-
-    quotation.blended_risk_score = (risk_sum / Decimal(str(count))).quantize(Decimal('0.01')) if count > 0 else Decimal('0.00')
-    quotation.save()
+    quotation.recalculate()
 
 
 class CustomerTierViewSet(viewsets.ModelViewSet):

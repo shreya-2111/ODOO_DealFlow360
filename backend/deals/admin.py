@@ -146,8 +146,18 @@ class QuotationItemInline(admin.TabularInline):
         'unit_price',
         'cost_price',
         'discount_percent',
+        'discount_amount',
         'tax_amount',
         'line_total',
+        'margin_percent',
+        'line_risk_score',
+    ]
+    readonly_fields = [
+        'discount_amount',
+        'tax_amount',
+        'line_total',
+        'margin_percent',
+        'line_risk_score',
     ]
     autocomplete_fields = ['product', 'variant']
 
@@ -163,8 +173,10 @@ class QuotationAdmin(admin.ModelAdmin):
         'total_gross_amount',
         'total_discount_amount',
         'total_net_amount',
+        'total_cost',
         'margin_percent',
         'blended_risk_score',
+        'order_discount_percent',
         'created_at',
     ]
     list_filter = ['status', 'created_at', 'sales_rep']
@@ -175,9 +187,22 @@ class QuotationAdmin(admin.ModelAdmin):
         'sales_rep__email',
     ]
     ordering = ['-created_at']
-    readonly_fields = ['created_at', 'last_interaction_at']
+    readonly_fields = [
+        'total_gross_amount',
+        'total_discount_amount',
+        'total_net_amount',
+        'total_cost',
+        'margin_percent',
+        'blended_risk_score',
+        'created_at',
+        'last_interaction_at'
+    ]
     inlines = [QuotationItemInline]
     autocomplete_fields = ['customer', 'sales_rep']
+
+    def save_related(self, request, form, formsets, change):
+        super().save_related(request, form, formsets, change)
+        form.instance.recalculate()
 
 
 @admin.register(QuotationItem)
@@ -192,6 +217,15 @@ class QuotationItemAdmin(admin.ModelAdmin):
         'discount_percent',
         'line_total',
         'margin_percent',
+        'line_risk_score',
+    ]
+    readonly_fields = [
+        'discount_amount',
+        'tax_amount',
+        'line_total',
+        'margin_amount',
+        'margin_percent',
+        'line_risk_score',
     ]
     list_filter = ['product__category']
     search_fields = [
@@ -201,6 +235,15 @@ class QuotationItemAdmin(admin.ModelAdmin):
     ]
     ordering = ['id']
     autocomplete_fields = ['quotation', 'product', 'variant']
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        obj.quotation.recalculate()
+
+    def delete_model(self, request, obj):
+        quotation = obj.quotation
+        super().delete_model(request, obj)
+        quotation.recalculate()
 
 
 @admin.register(ApprovalRequest)

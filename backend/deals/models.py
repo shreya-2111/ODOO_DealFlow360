@@ -1,3 +1,5 @@
+from decimal import Decimal
+import random
 from django.db import models
 
 
@@ -449,6 +451,75 @@ class Quotation(models.Model):
     def __str__(self):
         return f"{self.quotation_number} - {self.customer.company_name} [{self.get_status_display()}]"
 
+    def recalculate(self):
+        """
+        Recalculates totals, line discounts, order discount, costs,
+        margins and blended risk score from all linked quotation items.
+        """
+        items = self.items.select_related('product', 'product__category').all()
+        gross = Decimal('0.00')
+        line_discount = Decimal('0.00')
+        cost = Decimal('0.00')
+        tax = Decimal('0.00')
+        risk_sum = Decimal('0.00')
+        count = 0
+
+        for it in items:
+            gross += Decimal(str(it.unit_price)) * Decimal(str(it.quantity))
+            line_discount += Decimal(str(it.discount_amount))
+            cost += Decimal(str(it.cost_price)) * Decimal(str(it.quantity))
+            tax += Decimal(str(it.tax_amount))
+            risk_sum += Decimal(str(it.line_risk_score))
+            count += 1
+
+        subtotal_after_lines = gross - line_discount
+        order_disc_pct = Decimal(str(self.order_discount_percent or '0.00'))
+        order_discount = (subtotal_after_lines * (order_disc_pct / Decimal('100'))).quantize(Decimal('0.01'))
+        total_discount = line_discount + order_discount
+        net_before_tax = subtotal_after_lines - order_discount
+
+        if subtotal_after_lines > Decimal('0.00') and order_discount > Decimal('0.00'):
+            effective_tax = (tax * (net_before_tax / subtotal_after_lines)).quantize(Decimal('0.01'))
+        else:
+            effective_tax = tax.quantize(Decimal('0.01'))
+
+        total_net = net_before_tax + effective_tax
+
+        self.total_gross_amount = gross.quantize(Decimal('0.01'))
+        self.total_discount_amount = total_discount.quantize(Decimal('0.01'))
+        self.total_net_amount = total_net.quantize(Decimal('0.01'))
+        self.total_cost = cost.quantize(Decimal('0.01'))
+
+        if net_before_tax > Decimal('0.00'):
+            margin = ((net_before_tax - cost) / net_before_tax) * Decimal('100')
+            self.margin_percent = margin.quantize(Decimal('0.01'))
+        else:
+            self.margin_percent = Decimal('0.00')
+
+        # Blended risk calculation
+        risk_score = (risk_sum / Decimal(str(count))) if count > 0 else Decimal('10.00')
+        if order_disc_pct > Decimal('5.00'):
+            risk_score += Decimal('15.00')
+        if self.margin_percent < Decimal('25.00'):
+            risk_score += Decimal('25.00')
+        if total_net > Decimal('1000000.00'):
+            risk_score += Decimal('20.00')
+
+        self.blended_risk_score = min(Decimal('100.00'), max(Decimal('10.00'), risk_score.quantize(Decimal('0.01'))))
+        Quotation.objects.filter(pk=self.pk).update(
+            total_gross_amount=self.total_gross_amount,
+            total_discount_amount=self.total_discount_amount,
+            total_net_amount=self.total_net_amount,
+            total_cost=self.total_cost,
+            margin_percent=self.margin_percent,
+            blended_risk_score=self.blended_risk_score,
+        )
+
+    def save(self, *args, **kwargs):
+        if not self.quotation_number:
+            self.quotation_number = f"QT-2026-{random.randint(1000, 9999)}"
+        super().save(*args, **kwargs)
+
 
 class QuotationItem(models.Model):
     """
@@ -526,6 +597,64 @@ class QuotationItem(models.Model):
 
     def __str__(self):
         return f"{self.quotation.quotation_number} - {self.product.name} (Qty: {self.quantity})"
+
+    def save(self, *args, **kwargs):
+        if self.product:
+            if not self.unit_price:
+                self.unit_price = self.product.list_price
+            if not self.cost_price:
+                self.cost_price = self.product.cost_price
+            tax_rate = Decimal(str(self.product.tax_rate or '0.00'))
+        else:
+            tax_rate = Decimal('0.00')
+
+        qty = Decimal(str(self.quantity or 1))
+        u_price = Decimal(str(self.unit_price or '0.00'))
+        c_price = Decimal(str(self.cost_price or '0.00'))
+        disc_pct = Decimal(str(self.discount_percent or '0.00'))
+
+        gross = u_price * qty
+        disc_amt = gross * (disc_pct / Decimal('100'))
+        net_after_disc = gross - disc_amt
+        tax_amt = net_after_disc * (tax_rate / Decimal('100'))
+        l_tot = net_after_disc + tax_amt
+
+        cost_tot = c_price * qty
+        m_amt = net_after_disc - cost_tot
+        m_pct = ((m_amt / net_after_disc) * Decimal('100')) if net_after_disc > Decimal('0.00') else Decimal('0.00')
+
+        self.discount_amount = disc_amt.quantize(Decimal('0.01'))
+        self.tax_amount = tax_amt.quantize(Decimal('0.01'))
+        self.line_total = l_tot.quantize(Decimal('0.01'))
+        self.margin_amount = m_amt.quantize(Decimal('0.01'))
+        self.margin_percent = m_pct.quantize(Decimal('0.01'))
+
+        # Governance & Line Risk calculation
+        ceiling = Decimal('10.00')
+        try:
+            if self.product and self.product.category:
+                ceiling = Decimal(str(self.product.category.max_discretionary_discount or '10.00'))
+            if self.quotation and self.quotation.customer and self.quotation.customer.tier:
+                tier = self.quotation.customer.tier
+                if self.product and self.product.category:
+                    rule = DiscountTierRule.objects.filter(tier=tier, category=self.product.category).first()
+                    if rule:
+                        ceiling = Decimal(str(rule.max_allowed_discount))
+                    else:
+                        ceiling = max(ceiling, Decimal(str(tier.discount_percentage or '10.00')))
+                else:
+                    ceiling = Decimal(str(tier.discount_percentage or '10.00'))
+        except Exception:
+            pass
+
+        if disc_pct > ceiling:
+            diff = disc_pct - ceiling
+            risk = Decimal('15.00') + (diff * Decimal('4.00'))
+            self.line_risk_score = min(Decimal('100.00'), risk.quantize(Decimal('0.01')))
+        else:
+            self.line_risk_score = Decimal('10.00')
+
+        super().save(*args, **kwargs)
 
 
 class ApprovalRequest(models.Model):
