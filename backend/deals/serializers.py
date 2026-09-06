@@ -215,7 +215,13 @@ class QuotationItemSerializer(serializers.ModelSerializer):
 
         cost_tot = Decimal(str(cost_price)) * Decimal(str(quantity))
         margin_amt = net_after_disc - cost_tot
-        margin_pct = (margin_amt / net_after_disc * Decimal('100')) if net_after_disc > 0 else Decimal('0.00')
+        if net_after_disc > Decimal('0.00'):
+            raw_margin_pct = (margin_amt / net_after_disc) * Decimal('100')
+            margin_pct = max(Decimal('-100.00'), min(Decimal('100.00'), raw_margin_pct))
+        elif cost_tot > Decimal('0.00'):
+            margin_pct = Decimal('-100.00')
+        else:
+            margin_pct = Decimal('0.00')
 
         attrs['discount_amount'] = disc_amt.quantize(Decimal('0.01'))
         attrs['tax_amount'] = tax_amt.quantize(Decimal('0.01'))

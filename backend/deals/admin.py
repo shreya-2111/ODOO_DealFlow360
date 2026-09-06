@@ -188,10 +188,7 @@ class QuotationAdmin(admin.ModelAdmin):
     ]
     ordering = ['-created_at']
     readonly_fields = [
-        'total_gross_amount',
-        'total_discount_amount',
         'total_net_amount',
-        'total_cost',
         'margin_percent',
         'blended_risk_score',
         'created_at',

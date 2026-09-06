@@ -1,0 +1,75 @@
+{% extends "admin/change_form.html" %}
+
+{% block admin_change_form_document_ready %}
+{{ block.super }}
+<script>
+(function() {
+    function calculateTotals() {
+        const grossInput = document.getElementById('id_total_gross_amount');
+        const discInput = document.getElementById('id_total_discount_amount');
+        const orderDiscPctInput = document.getElementById('id_order_discount_percent');
+        const costInput = document.getElementById('id_total_cost');
+
+        // Check if there are inline item rows with product / quantity / price
+        const itemRows = document.querySelectorAll('tr[id^="items-"]');
+        let hasItemData = false;
+        let sumGross = 0;
+        let sumCost = 0;
+        let sumDisc = 0;
+
+        itemRows.forEach(function(row) {
+            const qtyEl = row.querySelector('input[name$="-quantity"]');
+            const priceEl = row.querySelector('input[name$="-unit_price"]');
+            const costEl = row.querySelector('input[name$="-cost_price"]');
+            const discPctEl = row.querySelector('input[name$="-discount_percent"]');
+            const delEl = row.querySelector('input[name$="-DELETE"]');
+
+            if (delEl && delEl.checked) return;
+
+            if (qtyEl && priceEl) {
+                const qty = parseFloat(qtyEl.value) || 0;
+                const price = parseFloat(priceEl.value) || 0;
+                const cost = parseFloat(costEl ? costEl.value : 0) || 0;
+                const discPct = parseFloat(discPctEl ? discPctEl.value : 0) || 0;
+
+                if (qty > 0 && price > 0) {
+                    hasItemData = true;
+                    const lineGross = qty * price;
+                    const lineDisc = lineGross * (discPct / 100);
+                    const lineNet = lineGross - lineDisc;
+                    sumGross += lineGross;
+                    sumCost += (qty * cost);
+                    sumDisc += lineDisc;
+
+                    // Update readonly fields in row if present
+                    const lineDiscEl = row.querySelector('.field-discount_amount p, .field-discount_amount div.readonly');
+                    if (lineDiscEl) lineDiscEl.textContent = '₹' + lineDisc.toFixed(2);
+                    const lineTotEl = row.querySelector('.field-line_total p, .field-line_total div.readonly');
+                    if (lineTotEl) lineTotEl.textContent = '₹' + (lineNet * 1.18).toFixed(2);
+                    const marginEl = row.querySelector('.field-margin_percent p, .field-margin_percent div.readonly');
+                    if (marginEl && lineNet > 0) {
+                        const mPct = Math.max(-100, Math.min(100, ((lineNet - (qty * cost)) / lineNet) * 100));
+                        marginEl.textContent = mPct.toFixed(2) + '%';
+                    }
+                }
+            }
+        });
+
+        if (hasItemData) {
+            if (grossInput) grossInput.value = sumGross.toFixed(2);
+            const orderPct = parseFloat(orderDiscPctInput ? orderDiscPctInput.value : 0) || 0;
+            const subtotalAfterLines = sumGross - sumDisc;
+            const orderDisc = subtotalAfterLines * (orderPct / 100);
+            const totalDisc = sumDisc + orderDisc;
+            if (discInput) discInput.value = totalDisc.toFixed(2);
+            if (costInput) costInput.value = sumCost.toFixed(2);
+        }
+    }
+
+    document.addEventListener('input', calculateTotals);
+    document.addEventListener('change', calculateTotals);
+    window.addEventListener('load', calculateTotals);
+    setTimeout(calculateTotals, 500);
+})();
+</script>
+{% endblock %}
