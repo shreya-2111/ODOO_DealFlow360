@@ -104,7 +104,7 @@ if DB_ENGINE == 'mysql':
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.mysql',
-            'NAME': os.getenv('DB_NAME', 'dealflow360'),
+            'NAME': os.getenv('DB_NAME', 'dealflow'),
             'USER': os.getenv('DB_USER', 'root'),
             'PASSWORD': os.getenv('DB_PASSWORD', ''),
             'HOST': os.getenv('DB_HOST', '127.0.0.1'),
