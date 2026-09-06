@@ -14,6 +14,10 @@ class Warehouse(models.Model):
     def __str__(self):
         return self.name
 
+    class Meta:
+        verbose_name = "Warehouse"
+        verbose_name_plural = "Warehouses"
+
 class Inventory(models.Model):
     warehouse = models.ForeignKey(
         Warehouse,
@@ -37,6 +41,8 @@ class Inventory(models.Model):
 
     class Meta:
         db_table = "warehouse_inventory"
+        verbose_name = "Warehouse Inventory"
+        verbose_name_plural = "Warehouse Inventories"
         constraints = [
             models.UniqueConstraint(
                 fields=["warehouse", "product_id", "variant_id"],
@@ -100,6 +106,8 @@ class FulfillmentSplit(models.Model):
 
     class Meta:
         db_table = "fulfillment_splits"
+        verbose_name = "Fulfillment Split"
+        verbose_name_plural = "Fulfillment Splits"
 
     def __str__(self):
         return f"Fulfillment Split {self.id}"

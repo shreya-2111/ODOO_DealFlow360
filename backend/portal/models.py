@@ -56,6 +56,8 @@ class PortalNegotiation(models.Model):
 
     class Meta:
         db_table = "portal_negotiations"
+        verbose_name = "Portal Negotiation"
+        verbose_name_plural = "Portal Negotiations"
 
     def __str__(self):
         return f"Negotiation {self.id}"

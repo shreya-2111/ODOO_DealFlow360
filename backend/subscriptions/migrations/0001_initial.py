@@ -21,7 +21,7 @@ class Migration(migrations.Migration):
                 ('cancellation_terms', models.TextField(blank=True, null=True)),
             ],
             options={
-                'db_table': 'subscription_plans',
+                'db_table': 'recurring_plans',
             },
         ),
     ]

@@ -48,6 +48,8 @@ class Invoice(models.Model):
 
     class Meta:
         db_table = "invoices"
+        verbose_name = "Invoice"
+        verbose_name_plural = "Invoices"
 
     def __str__(self):
         return self.invoice_number
@@ -80,6 +82,8 @@ class Payment(models.Model):
 
     class Meta:
         db_table = "payments"
+        verbose_name = "Payment"
+        verbose_name_plural = "Payments"
     
 class CreditNote(models.Model):
 
@@ -111,3 +115,5 @@ class CreditNote(models.Model):
 
     class Meta:
         db_table = "credit_notes"
+        verbose_name = "Credit Note"
+        verbose_name_plural = "Credit Notes"

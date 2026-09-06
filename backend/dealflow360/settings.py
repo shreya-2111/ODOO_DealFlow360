@@ -56,6 +56,10 @@ INSTALLED_APPS = [
     # DealFlow360 Apps
     'authentication',
     'deals',
+    'billing',
+    'inventory',
+    'portal',
+    'subscriptions',
 ]
 
 if HAS_SPECTACULAR:

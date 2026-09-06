@@ -29,31 +29,60 @@ def _custom_get_app_list(request, app_label=None):
         return app_list
 
     MODEL_ORDER = [
-        'User',
-        'Role',
-        'Customer',
-        'CustomerTier',
-        'Quotation',
-        'QuotationItem',
-        'Product',
-        'ProductCategory',
-        'ProductVariant',
-        'ApprovalRequest',
-        'DealHealthAlert',
-        'RecommendationRule',
-        'DiscountTierRule',
-        'SubscriptionPlan',
+        # Authentication & Role RBAC
+        'authentication.User',
+        'authentication.Role',
+        # Core DealFlow CPQ
+        'deals.Customer',
+        'deals.CustomerTier',
+        'deals.Quotation',
+        'deals.QuotationItem',
+        'deals.Product',
+        'deals.ProductCategory',
+        'deals.ProductVariant',
+        'deals.ApprovalRequest',
+        'deals.DealHealthAlert',
+        'deals.RecommendationRule',
+        'deals.DiscountTierRule',
+        'deals.SubscriptionPlan',
+        # Billing & Invoicing
+        'billing.Invoice',
+        'billing.Payment',
+        'billing.CreditNote',
+        # Warehouse & Inventory
+        'inventory.Warehouse',
+        'inventory.Inventory',
+        'inventory.FulfillmentSplit',
+        # Customer Portal
+        'portal.PortalNegotiation',
+        # Subscriptions & Recurring Contracts
+        'subscriptions.SubscriptionPlan',
+        'subscriptions.Subscription',
     ]
 
     all_models = {}
     for app in app_list:
         for model in app['models']:
-            all_models[model['object_name']] = model
+            qualified_name = f"{app['app_label']}.{model['object_name']}"
+            all_models[qualified_name] = model
 
-    sorted_models = [all_models[k] for k in MODEL_ORDER if k in all_models]
-    for k, v in all_models.items():
-        if k not in MODEL_ORDER:
-            sorted_models.append(v)
+    sorted_models = []
+    seen = set()
+
+    for key in MODEL_ORDER:
+        if key in all_models:
+            m = all_models[key]
+            m_id = id(m)
+            if m_id not in seen:
+                sorted_models.append(m)
+                seen.add(m_id)
+
+    # Any remaining models not explicitly in MODEL_ORDER
+    for key, model in all_models.items():
+        m_id = id(model)
+        if m_id not in seen:
+            sorted_models.append(model)
+            seen.add(m_id)
 
     if not sorted_models:
         return app_list
@@ -126,6 +155,31 @@ def api_root(request):
                 'discount_tier_rules': '/api/discount-tier-rules/',
                 'subscription_plans': '/api/subscription-plans/',
             },
+            'billing_and_invoices': {
+                'invoices': '/api/billing/',
+                'invoice_create': '/api/billing/create/',
+                'calculate': '/api/billing/calculate/',
+                'generate': '/api/billing/generate/',
+                'payments': '/api/billing/payments/',
+                'credit_notes': '/api/billing/credit-notes/',
+            },
+            'inventory_and_fulfillment': {
+                'warehouses': '/api/warehouses/',
+                'inventory': '/api/inventory/',
+                'fulfillment_splits': '/api/fulfillment-splits/',
+                'auto_fulfillment': '/api/fulfillment/auto/',
+                'manual_override': '/api/fulfillment/manual/',
+                'consolidate_backorders': '/api/fulfillment/backorders/consolidate/',
+            },
+            'subscriptions_and_lifecycle': {
+                'plans': '/api/subscriptions/plans/',
+                'subscriptions': '/api/subscriptions/',
+                'create': '/api/subscriptions/create/',
+                'due_subscriptions': '/api/subscriptions/process-due/',
+            },
+            'customer_portal': {
+                'negotiations': '/api/portal/negotiations/',
+            },
         },
         'frontend_dashboard_url': 'http://localhost:5173/',
     })
@@ -139,6 +193,10 @@ urlpatterns = [
     # App APIs
     path('api/auth/', include('authentication.urls')),
     path('api/', include('deals.urls')),
+    path('api/', include('inventory.urls')),
+    path('api/subscriptions/', include('subscriptions.urls')),
+    path('api/billing/', include('billing.urls')),
+    path('api/portal/', include('portal.urls')),
 ]
 
 if HAS_SPECTACULAR:

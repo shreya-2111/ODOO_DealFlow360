@@ -36,7 +36,9 @@ class SubscriptionPlan(models.Model):
         return self.plan_name
 
     class Meta:
-        db_table = "subscription_plans"
+        db_table = "recurring_plans"
+        verbose_name = "Recurring Subscription Plan"
+        verbose_name_plural = "Recurring Subscription Plans"
     
 class Subscription(models.Model):
 
@@ -86,6 +88,8 @@ class Subscription(models.Model):
 
     class Meta:
         db_table = "subscriptions"
+        verbose_name = "Subscription"
+        verbose_name_plural = "Subscriptions"
 
     def __str__(self):
         return f"Subscription {self.id}"
